@@ -3,11 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TypeSlayer Game</title>
-    <link rel="stylesheet" href="/style.css">
+    <title>TypeSlayer - Master the Art of Speed Typing</title>
+    <meta name="description" content="TypeSlayer - A fast-paced typing game to improve your typing speed and accuracy. Challenge yourself with falling words and level up your skills!">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    
+    <!-- Preload fonts for better performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <style>
+        /* Prevent flash of unstyled content */
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        /* Loading screen */
+        #initial-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #0a0a0a, #1a1a1a, #0a0a0a);
+            background-size: 400% 400%;
+            animation: gradientShift 3s ease infinite;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+        }
+        
+        .loading-title {
+            font-family: 'Courier New', monospace;
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ff88, #00aaff, #00ff88);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: textGlow 2s ease infinite;
+            margin-bottom: 2rem;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #333;
+            border-top: 4px solid #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        .loading-text {
+            color: #b0b0b0;
+            font-size: 1rem;
+            animation: pulse 1.5s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes textGlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* Hide loading screen when app loads */
+        .loaded #initial-loading {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+    </style>
 </head>
 <body>
-    <h1>Phaser Game Loading...</h1>
-    <script src="/main.js"></script>
+    <!-- Initial loading screen -->
+    <div id="initial-loading">
+        <div class="loading-title">TypeSlayer</div>
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading your typing adventure...</div>
+    </div>
+    
+    <!-- React app root -->
+    <div id="root"></div>
+    
+    <script>
+        // Remove loading screen once React app loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.body.classList.add('loaded');
+            }, 500);
+        });
+        
+        // Fallback to remove loading screen after 3 seconds
+        setTimeout(() => {
+            document.body.classList.add('loaded');
+        }, 3000);
+    </script>
+    
+    <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

@@ -20,6 +20,8 @@ build/
 /node_modules
 /.pnp
 .pnp.js
+/package-lock.json
+/package-lock.json.backup
 
 # testing
 /coverage
