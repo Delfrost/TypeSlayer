@@ -59,7 +59,7 @@ const enemyTypes = {
     scale: 0.8
   },
   warrior: {
-    name: "Dark Warrior", 
+    name: "Dark Warrior",
     hp: 2,
     speed: 4500, // Increased from 3500
     color: "#aa4444",
@@ -87,8 +87,8 @@ const enemyTypes = {
   },
   boss: {
     name: "Dark Lord",
-    hp: 5,
-    speed: 7000, // Increased from 6000
+    hp: 3, // Changed from 5 to 3
+    speed: 10000,
     color: "#ff0088",
     points: 100,
     sprite: "👾",
@@ -106,7 +106,7 @@ const allyTypes = {
     message: "+1 Life!"
   },
   sage: {
-    name: "Wise Sage", 
+    name: "Wise Sage",
     sprite: "👴",
     color: "#ffaa00",
     benefit: "combo_multiplier",
@@ -133,154 +133,148 @@ class MenuScene extends Phaser.Scene {
     super({ key: "MenuScene" });
   }
 
+  preload() {
+    this.load.image('menu-bg', '/start 3.jpg');
+  }
+
   create() {
-    // Dark magical background with gradient
-    const graphics = this.add.graphics();
-    graphics.fillGradientStyle(0x1a0a2e, 0x16213e, 0x0f3460, 0x533483);
-    graphics.fillRect(0, 0, 800, 600);
-    
-    // Create mystical background particles
-    this.createMagicalBackground();
+    // --- 1. Background and Title ---
+    const bg = this.add.image(400, 300, 'menu-bg');
+    bg.setDisplaySize(this.cameras.main.width, this.cameras.main.height);
 
-    // Title with magical glow effect
-    const title = this.add.text(400, 100, "TypeSlayer", {
-      fontSize: "80px",
+    this.add.text(400, 80, "TypeSlayer", {
+      fontSize: "96px",
       fontFamily: "Courier New, monospace",
-      color: "#ff6b9d",
-      stroke: "#000033",
-      strokeThickness: 6
+      color: "#ffffff",
+      stroke: "#a91101",
+      strokeThickness: 8,
+      shadow: { offsetX: 5, offsetY: 5, color: '#000', blur: 10, stroke: true, fill: true }
     }).setOrigin(0.5);
 
-    // Magical glow animation
-    this.tweens.add({
-      targets: title,
-      alpha: 0.8,
-      duration: 2000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
+    // --- 2. Create Containers for each screen ---
+    // This makes it easy to show/hide entire screens at once.
+    this.mainMenuContainer = this.add.container(400, 320);
+    this.howToPlayContainer = this.add.container(400, 300).setVisible(false);
+    this.optionsContainer = this.add.container(400, 300).setVisible(false);
+    this.storyContainer = this.add.container(400, 300).setVisible(false);
 
-    // Subtitle with typing animation effect
-    this.typeText(400, 180, "Defend the Realm with Your Typing Magic", {
-      fontSize: "24px",
-      fontFamily: "Arial",
-      color: "#a8e6cf",
-    }, 50);
+    // --- 3. Populate the Main Menu ---
+    this.createMainMenu();
 
-    // Game mechanics explanation
-    const mechanicsTitle = this.add.text(400, 250, "How to Cast Spells:", {
-      fontSize: "20px",
-      fontFamily: "Arial",
-      color: "#ffd93d",
-      fontStyle: "bold"
-    }).setOrigin(0.5);
+    // --- 4. Populate the "How to Play" Screen ---
+    this.createHowToPlayScreen();
 
-    const instructions = [
-      "⚔️ Type words to defeat regular enemies",
-      "🔥 Type complete sentences to defeat bosses", 
-      "🧙‍♀️ Help friendly allies for special bonuses",
-      "🎯 Higher levels = harder words & longer sentences",
-      "💀 Don't let enemies reach the bottom!"
+    // --- 5. Populate the Placeholder Screens ---
+    this.createPlaceholderScreen(this.optionsContainer, "Game Options");
+    this.createPlaceholderScreen(this.storyContainer, "The Story So Far...");
+  }
+
+  // --- Helper function to switch between screens ---
+  switchScreen(containerToShow) {
+    // Hide all containers first
+    this.mainMenuContainer.setVisible(false);
+    this.howToPlayContainer.setVisible(false);
+    this.optionsContainer.setVisible(false);
+    this.storyContainer.setVisible(false);
+
+    // Show the requested one
+    containerToShow.setVisible(true);
+  }
+
+  // --- Builds the main menu buttons ---
+  createMainMenu() {
+    const menuOptions = [
+      { text: 'Start Game', action: () => {
+          this.cameras.main.fadeOut(300, 0, 0, 0);
+          this.time.delayedCall(300, () => this.scene.start('PlayScene'));
+        }
+      },
+      { text: 'How to Play', action: () => this.switchScreen(this.howToPlayContainer) },
+      { text: 'Options', action: () => this.switchScreen(this.optionsContainer) },
+      { text: 'Story', action: () => this.switchScreen(this.storyContainer) }
     ];
 
-    instructions.forEach((instruction, index) => {
-      this.add.text(400, 290 + (index * 25), instruction, {
-        fontSize: "16px",
-        fontFamily: "Arial",
-        color: "#ffffff",
+    let yPos = -40;
+    menuOptions.forEach(option => {
+      const button = this.createButton(0, yPos, option.text, option.action);
+      this.mainMenuContainer.add(button);
+      yPos += 70;
+    });
+  }
+
+  // --- Builds the "How to Play" content ---
+  createHowToPlayScreen() {
+    // Semi-transparent background for readability
+    const bgRect = this.add.rectangle(0, 0, 600, 450, 0x000000, 0.7);
+    bgRect.setStrokeStyle(2, 0xff4444);
+    this.howToPlayContainer.add(bgRect);
+
+    const title = this.add.text(0, -180, "How to Play", {
+      fontSize: '40px', fontFamily: 'Arial', color: '#ff4444', stroke: '#000000', strokeThickness: 4
+    }).setOrigin(0.5);
+    this.howToPlayContainer.add(title);
+
+    const instructions = [
+      "⚔️ Dark forces are invading!",
+      "⚔️ Type the words above an enemy's head.",
+      "⚔️ Press ENTER to cast your spell and destroy them.",
+      "⚔️ Defeat powerful BOSSES by typing full sentences.",
+      "⚔️ Help friendly ALLIES to gain powerful bonuses.",
+      "⚔️ Don't let enemies reach the bottom of the screen!",
+    ];
+
+    let yPos = -110;
+    instructions.forEach(line => {
+      const text = this.add.text(0, yPos, line, {
+        fontSize: '20px', fontFamily: 'Arial', color: '#ffffff', align: 'center', wordWrap: { width: 550 }
       }).setOrigin(0.5);
+      this.howToPlayContainer.add(text);
+      yPos += 45;
     });
 
-    // Start Button with magical styling
-    const startButton = this.add.text(400, 460, "🌟 Begin Quest 🌟", {
-      fontSize: "28px",
-      fontFamily: "Courier New, monospace",
-      backgroundColor: "#6c5ce7",
-      color: "#ffffff",
-      padding: { x: 25, y: 12 },
-      borderRadius: 10
+    const backButton = this.createButton(0, 180, 'Back to Menu', () => this.switchScreen(this.mainMenuContainer));
+    this.howToPlayContainer.add(backButton);
+  }
+
+  // --- Builds the placeholder screens for Options and Story ---
+  createPlaceholderScreen(container, titleText) {
+    const bgRect = this.add.rectangle(0, 0, 600, 450, 0x000000, 0.7);
+    bgRect.setStrokeStyle(2, 0xff4444);
+    container.add(bgRect);
+
+    const title = this.add.text(0, -180, titleText, {
+      fontSize: '40px', fontFamily: 'Arial', color: '#ff4444', stroke: '#000000', strokeThickness: 4
+    }).setOrigin(0.5);
+    container.add(title);
+
+    const placeholderText = this.add.text(0, 0, "This screen is not yet implemented.", {
+      fontSize: '22px', fontFamily: 'Arial', color: '#cccccc', fontStyle: 'italic'
+    }).setOrigin(0.5);
+    container.add(placeholderText);
+
+    const backButton = this.createButton(0, 180, 'Back to Menu', () => this.switchScreen(this.mainMenuContainer));
+    container.add(backButton);
+  }
+
+  // --- A helper function to create consistent buttons ---
+  createButton(x, y, text, action) {
+    const button = this.add.text(x, y, text, {
+      fontSize: '32px',
+      fontFamily: 'Arial',
+      color: '#cccccc',
+      stroke: '#000000',
+      strokeThickness: 4,
+      align: 'center'
     }).setOrigin(0.5).setInteractive();
 
-    // Magical button hover effects
-    startButton.on("pointerover", () => {
-      startButton.setStyle({ backgroundColor: "#a29bfe", color: "#2d3436" });
-      this.tweens.add({
-        targets: startButton,
-        scaleX: 1.1,
-        scaleY: 1.1,
-        duration: 200,
-        ease: 'Back.easeOut'
-      });
-    });
+    button.on('pointerover', () => button.setStyle({ color: '#ff4444' }));
+    button.on('pointerout', () => button.setStyle({ color: '#cccccc' }));
+    button.on('pointerdown', action);
 
-    startButton.on("pointerout", () => {
-      startButton.setStyle({ backgroundColor: "#6c5ce7", color: "#ffffff" });
-      this.tweens.add({
-        targets: startButton,
-        scaleX: 1,
-        scaleY: 1,
-        duration: 200,
-        ease: 'Power2'
-      });
-    });
-
-    startButton.on("pointerdown", () => {
-      this.cameras.main.fadeOut(300, 0, 0, 0);
-      this.time.delayedCall(300, () => {
-        this.scene.start("PlayScene");
-      });
-    });
-
-    // Level preview
-    this.add.text(400, 530, "5 Levels • Slower Enemies • Friendly Allies • Epic Boss Battles", {
-      fontSize: "14px",
-      fontFamily: "Arial", 
-      color: "#b2bec3",
-      fontStyle: "italic"
-    }).setOrigin(0.5);
-  }
-
-  typeText(x, y, text, style, speed) {
-    let displayText = "";
-    const textObject = this.add.text(x, y, "", style).setOrigin(0.5);
-    
-    for (let i = 0; i < text.length; i++) {
-      this.time.delayedCall(speed * i, () => {
-        displayText += text[i];
-        textObject.setText(displayText);
-      });
-    }
-  }
-
-  createMagicalBackground() {
-    // Create floating magical symbols
-    const symbols = ["✦", "⋄", "☆", "◇", "○", "△", "♦", "⚡"];
-    
-    for (let i = 0; i < 15; i++) {
-      const x = Phaser.Math.Between(50, 750);
-      const y = Phaser.Math.Between(50, 550);
-      const symbol = Phaser.Utils.Array.GetRandom(symbols);
-      
-      const particle = this.add.text(x, y, symbol, {
-        fontSize: Phaser.Math.Between(12, 20) + "px",
-        color: Phaser.Utils.Array.GetRandom(["#6c5ce7", "#a29bfe", "#fd79a8", "#fdcb6e"]),
-        alpha: Phaser.Math.Between(20, 60) / 100
-      });
-
-      this.tweens.add({
-        targets: particle,
-        y: y - Phaser.Math.Between(100, 200),
-        alpha: 0,
-        rotation: Phaser.Math.Between(-180, 180),
-        duration: Phaser.Math.Between(4000, 8000),
-        delay: Phaser.Math.Between(0, 3000),
-        repeat: -1,
-        ease: 'Sine.easeInOut'
-      });
-    }
+    return button;
   }
 }
+
 
 class PlayScene extends Phaser.Scene {
   constructor() {
@@ -293,7 +287,7 @@ class PlayScene extends Phaser.Scene {
       .fillStyle(0xffffff)
       .fillRect(0, 0, 6, 6)
       .generateTexture('particle', 6, 6);
-      
+
     // Create energy burst texture
     this.add.graphics()
       .fillGradientStyle(0x00ff88, 0x00ff88, 0x88ff00, 0x88ff00)
@@ -322,7 +316,9 @@ class PlayScene extends Phaser.Scene {
       maxCombo: 0,
       shield: false,
       timeSlowActive: false,
-      allySpawnChance: 0.15 // 15% chance for ally to spawn
+      allySpawnChance: 0.15,// 15% chance for ally to spawn
+      healerSpawnedThisLevel: false, // <-- ADD THIS
+      lastAllySpawnTime: 0 
     };
 
     // Create mystical background
@@ -333,7 +329,7 @@ class PlayScene extends Phaser.Scene {
     // Create groups
     this.enemyGroup = this.add.group();
     this.allyGroup = this.add.group();
-    
+
     // Create enhanced particle systems
     this.hitParticles = this.add.particles(0, 0, 'particle', {
       speed: { min: 100, max: 200 },
@@ -457,7 +453,7 @@ class PlayScene extends Phaser.Scene {
   }
 
   spawnEnemy() {
-    if (this.gameState.gameOver) return;
+    if (this.gameState.gameOver || this.gameState.bossActive) return;
 
     // Check if it's time for a boss
     if (this.gameState.enemiesKilled >= this.gameState.enemiesPerBoss && !this.gameState.bossActive) {
@@ -470,19 +466,28 @@ class PlayScene extends Phaser.Scene {
   }
 
   trySpawnAlly() {
-    if (this.gameState.gameOver || Math.random() > this.gameState.allySpawnChance) return;
+    if (this.gameState.gameOver || this.gameState.bossActive) return;
 
-    // Don't spawn ally if there are too many entities on screen
+    // Cooldown: at least 10 seconds between ally spawns
+    const now = this.time.now;
+    if (now - this.gameState.lastAllySpawnTime < 10000) return;
+
+    // Don't spawn if there's already an ally
     if (this.allyGroup.getLength() >= 1) return;
 
-    this.spawnAlly();
+    // Check the random chance
+    if (Math.random() <= this.gameState.allySpawnChance) {
+      this.spawnAlly();
+    }
   }
 
   spawnAlly() {
-    const allyTypeNames = Object.keys(allyTypes);
+    const allyTypeNames = Object.keys(allyTypes).filter(name => name !== 'healer');
     const allyTypeName = Phaser.Utils.Array.GetRandom(allyTypeNames);
     const allyType = allyTypes[allyTypeName];
 
+    // Update the last spawn time
+    this.gameState.lastAllySpawnTime = this.time.now;
     // Get word for ally
     const currentWords = allyWords[Math.min(this.gameState.level, 5)] || allyWords[1];
     const word = Phaser.Utils.Array.GetRandom(currentWords);
@@ -497,7 +502,7 @@ class PlayScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Create word display above ally
-    const wordText = this.add.text(startX, startY - 40, word, {
+    const allyWordText = this.add.text(startX, startY - 40, word, {
       fontSize: "18px",
       fontFamily: "Courier New, monospace",
       fill: allyType.color,
@@ -509,7 +514,7 @@ class PlayScene extends Phaser.Scene {
 
     // Store ally data
     ally.setData('word', word);
-    ally.setData('wordText', wordText);
+    ally.setData('wordText', allyWordText);
     ally.setData('type', allyTypeName);
     ally.setData('benefit', allyType.benefit);
     ally.setData('message', allyType.message);
@@ -520,22 +525,68 @@ class PlayScene extends Phaser.Scene {
 
     // Animate ally movement (slower horizontal movement)
     const tween = this.tweens.add({
-      targets: [ally, wordText],
+      targets: [ally, allyWordText],
       x: -50, // Move left across screen
       duration: 12000, // 12 seconds to cross
       ease: 'Linear',
       onComplete: () => {
         ally.destroy();
-        wordText.destroy();
+        allyWordText.destroy();
       }
     });
 
     ally.setData('tween', tween);
-    wordText.setData('tween', tween);
+    allyWordText.setData('tween', tween);
 
     // Show ally notification
     this.showNotification("🧙‍♀️ Friendly ally appeared! 🧙‍♀️", allyType.color, 2000);
   }
+
+spawnHealerAlly() {
+  const allyType = allyTypes['healer'];
+  const currentWords = allyWords[Math.min(this.gameState.level, 5)] || allyWords[1];
+  const word = Phaser.Utils.Array.GetRandom(currentWords);
+
+  const startX = 850;
+  const startY = Phaser.Math.Between(150, 400);
+
+  const ally = this.add.text(startX, startY, allyType.sprite, { fontSize: "36px" }).setOrigin(0.5);
+  const allyWordText = this.add.text(startX, startY - 40, word, {
+    fontSize: "18px",
+    fontFamily: "Courier New, monospace",
+    fill: allyType.color,
+    backgroundColor: "#003300",
+    padding: { x: 8, y: 4 },
+    stroke: "#ffffff",
+    strokeThickness: 1
+  }).setOrigin(0.5);
+
+  ally.setData({
+    word: word,
+    wordText: allyWordText,
+    type: 'healer',
+    benefit: allyType.benefit,
+    message: allyType.message,
+    matched: false,
+    isAlly: true
+  });
+
+  this.allyGroup.add(ally);
+
+  const tween = this.tweens.add({
+    targets: [ally, allyWordText],
+    x: -50,
+    duration: 12000,
+    ease: 'Linear',
+    onComplete: () => {
+      ally.destroy();
+      allyWordText.destroy();
+    }
+  });
+
+  ally.setData('tween', tween);
+  this.showNotification("A healer comes to your aid!", allyType.color, 2000);
+}
 
   spawnRegularEnemy() {
     const enemyTypeNames = ['minion', 'warrior', 'mage', 'demon'];
@@ -555,7 +606,7 @@ class PlayScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Create word display above enemy
-    const wordText = this.add.text(startX, startY - 40, word, {
+    const enemyWordText = this.add.text(startX, startY - 40, word, {
       fontSize: "20px",
       fontFamily: "Courier New, monospace",
       fill: enemyType.color,
@@ -567,7 +618,7 @@ class PlayScene extends Phaser.Scene {
 
     // Store enemy data
     enemy.setData('word', word);
-    enemy.setData('wordText', wordText);
+    enemy.setData('wordText', enemyWordText);
     enemy.setData('hp', enemyType.hp);
     enemy.setData('maxHp', enemyType.hp);
     enemy.setData('type', enemyTypeName);
@@ -579,12 +630,12 @@ class PlayScene extends Phaser.Scene {
     this.enemyGroup.add(enemy);
 
     // Apply time slow effect if active
-    const currentSpeed = this.gameState.timeSlowActive ? 
+    const currentSpeed = this.gameState.timeSlowActive ?
       this.gameState.enemySpeed * 1.8 : this.gameState.enemySpeed;
 
     // Animate enemy descent with magical trail
     const tween = this.tweens.add({
-      targets: [enemy, wordText],
+      targets: [enemy, enemyWordText],
       y: `+=${650}`,
       duration: currentSpeed,
       ease: 'Linear',
@@ -600,12 +651,12 @@ class PlayScene extends Phaser.Scene {
           }
         }
         enemy.destroy();
-        wordText.destroy();
+        enemyWordText.destroy();
       }
     });
 
     enemy.setData('tween', tween);
-    wordText.setData('tween', tween);
+    enemyWordText.setData('tween', tween);
   }
 
   spawnBoss() {
@@ -619,13 +670,8 @@ class PlayScene extends Phaser.Scene {
     const startX = 400; // Center spawn for boss
     const startY = -50;
 
-    // Create boss with dramatic appearance
-    const boss = this.add.text(startX, startY, bossType.sprite, {
-      fontSize: `${48 * bossType.scale}px`
-    }).setOrigin(0.5);
-
-    // Create boss line display with dramatic styling
-    const lineText = this.add.text(startX, startY - 60, line, {
+    // Create boss line display first (appears 2 seconds early)
+    const bossLineText = this.add.text(startX, startY - 60, line, {
       fontSize: "18px",
       fontFamily: "Courier New, monospace",
       fill: bossType.color,
@@ -635,15 +681,23 @@ class PlayScene extends Phaser.Scene {
       strokeThickness: 2,
       wordWrap: { width: 400 },
       align: 'center'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(2);
 
-    // Boss health bar
-    const healthBarBg = this.add.rectangle(startX, startY - 100, 200, 12, 0x330000).setOrigin(0.5);
-    const healthBar = this.add.rectangle(startX, startY - 100, 200, 10, 0xff0088).setOrigin(0.5);
+    // Create boss sprite after delay
+    const boss = this.add.text(startX, startY, bossType.sprite, {
+      fontSize: `${48 * bossType.scale}px`
+    }).setOrigin(0.5).setDepth(1);
 
+    // Hide boss initially, show after 2 seconds
+    boss.setAlpha(0);
+    this.time.delayedCall(2000, () => {
+      boss.setAlpha(1);
+    });
+
+    
     // Store boss data
     boss.setData('word', line);
-    boss.setData('wordText', lineText);
+    boss.setData('wordText', bossLineText);
     boss.setData('hp', bossType.hp);
     boss.setData('maxHp', bossType.hp);
     boss.setData('type', 'boss');
@@ -651,8 +705,7 @@ class PlayScene extends Phaser.Scene {
     boss.setData('matched', false);
     boss.setData('isBoss', true);
     boss.setData('isAlly', false);
-    boss.setData('healthBar', healthBar);
-    boss.setData('healthBarBg', healthBarBg);
+    
 
     this.enemyGroup.add(boss);
 
@@ -660,12 +713,12 @@ class PlayScene extends Phaser.Scene {
     this.showNotification("🔥 BOSS APPROACHES! 🔥", '#ff0088', 2000);
 
     // Apply time slow effect if active
-    const currentSpeed = this.gameState.timeSlowActive ? 
+    const currentSpeed = this.gameState.timeSlowActive ?
       bossType.speed * 1.8 : bossType.speed;
 
     // Animate boss descent (slower than regular enemies)
     const tween = this.tweens.add({
-      targets: [boss, lineText, healthBarBg, healthBar],
+      targets: [boss, bossLineText],
       y: `+=${650}`,
       duration: currentSpeed,
       ease: 'Linear',
@@ -673,7 +726,7 @@ class PlayScene extends Phaser.Scene {
         if (!boss.getData('matched') && !this.gameState.gameOver) {
           if (!this.gameState.shield) {
             this.loseLife();
-            this.loseLife(); // Bosses cost 2 lives if they reach bottom
+            
             this.createMagicalExplosion(boss.x, boss.y, '#ff0088', 'boss_miss');
           } else {
             this.gameState.shield = false;
@@ -681,11 +734,15 @@ class PlayScene extends Phaser.Scene {
             this.showNotification("🛡️ Shield absorbed boss damage!", '#ffaa00', 1500);
           }
         }
-        this.gameState.bossActive = false;
-        boss.destroy();
-        lineText.destroy();
-        healthBarBg.destroy();
-        healthBar.destroy();
+
+         this.gameState.bossActive = false;
+
+        if (boss.active) {
+          boss.destroy();
+        }
+        if (bossLineText.active) {
+          bossLineText.destroy();
+        }
       }
     });
 
@@ -693,6 +750,10 @@ class PlayScene extends Phaser.Scene {
   }
 
   handleKeyInput(event) {
+    // Prevent default browser behavior for space and other keys
+    if (event.key === ' ' || event.key === 'Enter' || event.key === 'Backspace') {
+      event.preventDefault();
+    }
     if (this.gameState.gameOver) {
       if (event.key === ' ' || event.key === 'Enter') {
         this.scene.start("MenuScene");
@@ -740,7 +801,7 @@ class PlayScene extends Phaser.Scene {
         if (enemyWord === spellText && !enemy.getData('matched')) {
           spellCast = true;
           const damage = isBoss ? 1 : enemy.getData('hp'); // Bosses take 1 damage per correct spell
-          
+
           this.damageEnemy(enemy, damage);
         }
       });
@@ -749,7 +810,7 @@ class PlayScene extends Phaser.Scene {
     if (spellCast) {
       this.gameState.wordsTyped++;
       this.gameState.correctWords++;
-      
+
       if (!allyHelped) {
         // Increase combo for enemy defeats
         this.gameState.comboCount++;
@@ -757,9 +818,9 @@ class PlayScene extends Phaser.Scene {
         this.gameState.maxCombo = Math.max(this.gameState.maxCombo, this.gameState.comboCount);
         this.updateComboDisplay();
       }
-      
+
       this.updateWPM();
-      
+
       // Flash input with success color
       this.inputDisplay.setStyle({ backgroundColor: '#00aa44' });
       this.time.delayedCall(200, () => {
@@ -770,7 +831,7 @@ class PlayScene extends Phaser.Scene {
       this.gameState.comboCount = 0;
       this.gameState.comboMultiplier = 1;
       this.updateComboDisplay();
-      
+
       // Flash input with failure color
       this.inputDisplay.setStyle({ backgroundColor: '#aa0044' });
       this.time.delayedCall(200, () => {
@@ -781,7 +842,7 @@ class PlayScene extends Phaser.Scene {
 
   helpAlly(ally) {
     ally.setData('matched', true);
-    
+
     // Stop movement
     const tween = ally.getData('tween');
     if (tween) {
@@ -797,15 +858,15 @@ class PlayScene extends Phaser.Scene {
         this.gameState.lives = Math.min(5, this.gameState.lives + 1);
         this.livesText.setText(`Lives: ${this.gameState.lives}`);
         break;
-      
+
       case 'combo_multiplier':
         this.gameState.comboMultiplier = Math.min(5, this.gameState.comboMultiplier + 2);
         break;
-      
+
       case 'time_slow':
         this.activateTimeSlow();
         break;
-      
+
       case 'shield':
         this.gameState.shield = true;
         break;
@@ -817,7 +878,7 @@ class PlayScene extends Phaser.Scene {
 
     // Destroy ally with magical effect
     const wordText = ally.getData('wordText');
-    
+
     this.tweens.add({
       targets: [ally, wordText],
       alpha: 0,
@@ -838,14 +899,14 @@ class PlayScene extends Phaser.Scene {
     if (this.gameState.timeSlowActive) return;
 
     this.gameState.timeSlowActive = true;
-    
+
     // Slow down all existing enemies
     this.enemyGroup.getChildren().forEach((enemy) => {
       const tween = enemy.getData('tween');
       if (tween && tween.isPlaying()) {
         const progress = tween.progress;
         tween.stop();
-        
+
         // Create new slower tween
         const wordText = enemy.getData('wordText');
         const remainingDistance = (1 - progress) * 650;
@@ -869,7 +930,7 @@ class PlayScene extends Phaser.Scene {
 
   updateComboDisplay() {
     this.comboText.setText(`Combo: x${this.gameState.comboMultiplier}`);
-    
+
     // Add combo visual effect
     if (this.gameState.comboMultiplier > 1) {
       this.tweens.add({
@@ -885,15 +946,15 @@ class PlayScene extends Phaser.Scene {
 
   updateStatusDisplay() {
     let statusText = "";
-    
+
     if (this.gameState.shield) {
       statusText += "🛡️ Shield Active ";
     }
-    
+
     if (this.gameState.timeSlowActive) {
       statusText += "⏰ Time Slowed ";
     }
-    
+
     this.statusText.setText(statusText);
   }
 
@@ -901,45 +962,35 @@ class PlayScene extends Phaser.Scene {
     const currentHp = enemy.getData('hp');
     const newHp = currentHp - damage;
     const isBoss = enemy.getData('isBoss');
-    
+
     enemy.setData('hp', newHp);
 
-    if (isBoss) {
-      // Update boss health bar
-      const healthBar = enemy.getData('healthBar');
-      const maxHp = enemy.getData('maxHp');
-      const healthPercentage = Math.max(0, newHp / maxHp);
-      healthBar.scaleX = healthPercentage;
-      
-      // Boss damage effect
-      this.createMagicalExplosion(enemy.x, enemy.y, '#ff0088', 'boss_hit');
-    }
+    
 
     if (newHp <= 0) {
       // Enemy defeated!
       enemy.setData('matched', true);
-      
+
       // Stop movement
       const tween = enemy.getData('tween');
       if (tween) {
         tween.stop();
+        const wordText = enemy.getData('wordText');
+        wordText.setText('');  
       }
 
       // Destroy enemy with magical effect
       const points = enemy.getData('points') * this.gameState.comboMultiplier;
       this.updateScore(points);
-      
+
       if (isBoss) {
         this.gameState.bossActive = false;
-        this.gameState.enemiesKilled = 0; // Reset counter after boss
+        this.gameState.enemiesKilled = 0;
         this.createMagicalExplosion(enemy.x, enemy.y, '#ffaa00', 'boss_death');
         this.showNotification("🎉 BOSS DEFEATED! 🎉", '#ffaa00', 1500);
-        
+
         // Clean up boss UI elements
-        const healthBar = enemy.getData('healthBar');
-        const healthBarBg = enemy.getData('healthBarBg');
-        if (healthBar) healthBar.destroy();
-        if (healthBarBg) healthBarBg.destroy();
+        
       } else {
         this.gameState.enemiesKilled++;
         this.createMagicalExplosion(enemy.x, enemy.y, '#00ff88', 'enemy_death');
@@ -952,7 +1003,7 @@ class PlayScene extends Phaser.Scene {
 
       // Destroy enemy and word text
       const wordText = enemy.getData('wordText');
-      
+
       this.tweens.add({
         targets: [enemy, wordText],
         alpha: 0,
@@ -963,7 +1014,73 @@ class PlayScene extends Phaser.Scene {
           wordText.destroy();
         }
       });
-    } else if (!isBoss) {
+
+    } else if (isBoss) {
+      // Boss took damage but not defeated - animate knockback and respawn
+      this.createMagicalExplosion(enemy.x, enemy.y, '#ff4444', 'boss_hit');
+      this.showNotification(`Boss HP: ${newHp}/${enemy.getData('maxHp')}`, '#ff0088', 1000);
+
+      // Prevent player from hitting the boss again while it's retreating
+      enemy.setData('matched', true);
+      // Stop current movement
+      const tween = enemy.getData('tween');
+      if (tween) {
+        tween.stop();
+      }
+
+      const wordText = enemy.getData('wordText');
+      // Hide the old text instead of clearing it
+      wordText.setAlpha(0);
+
+      // Animate boss getting knocked back up
+      this.tweens.add({
+        targets: [enemy, wordText], // Animate both together to keep them in sync
+        y: -100, // Move back to the top of the screen
+        duration: 1500,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+          // Give a new sentence
+          const currentLines = bossLinesByLevel[Math.min(this.gameState.level, 5)] || bossLinesByLevel[1];
+          const newLine = Phaser.Utils.Array.GetRandom(currentLines);
+
+          enemy.setData('word', newLine);
+          wordText.setText(newLine);
+          // Make the new text visible
+          wordText.setAlpha(1);
+          // Allow the player to type the new sentence
+          enemy.setData('matched', false);
+
+          // Start falling again
+          const newTween = this.tweens.add({
+            targets: [enemy, wordText],
+            y: `+=${700}`, // Fall from the new position
+            duration: enemyTypes.boss.speed,
+            ease: 'Linear',
+            onComplete: () => {
+              if (!enemy.getData('matched') && !this.gameState.gameOver) {
+                if (!this.gameState.shield) {
+                  this.loseLife();
+                  this.loseLife();
+                  this.createMagicalExplosion(enemy.x, enemy.y, '#ff0088', 'boss_miss');
+                } else {
+                  this.gameState.shield = false;
+                  this.updateStatusDisplay();
+                  this.showNotification("🛡️ Shield absorbed boss damage!", '#ffaa00', 1500);
+                }
+              }
+              this.gameState.bossActive = false;
+              enemy.destroy();
+              wordText.destroy();
+            }
+          });
+          enemy.setData('tween', newTween);
+        }
+      });
+      // --- END OF FIX ---
+
+      return; // Don't continue to normal enemy destruction
+    }
+     else if (!isBoss) {
       // Regular enemy took damage but not defeated
       this.createMagicalExplosion(enemy.x, enemy.y, '#ffaa00', 'hit');
     }
@@ -973,7 +1090,7 @@ class PlayScene extends Phaser.Scene {
 
   createMagicalExplosion(x, y, color, type) {
     const colorValue = Phaser.Display.Color.HexStringToColor(color).color;
-    
+
     // Different particle effects for different events
     switch (type) {
       case 'boss_death':
@@ -985,11 +1102,11 @@ class PlayScene extends Phaser.Scene {
           lifespan: 1500
         });
         this.hitParticles.explode(20);
-        
+
         this.magicParticles.setPosition(x, y);
         this.magicParticles.explode(15);
         break;
-        
+
       case 'boss_hit':
         this.magicParticles.setPosition(x, y);
         this.magicParticles.setConfig({
@@ -1009,7 +1126,7 @@ class PlayScene extends Phaser.Scene {
         });
         this.magicParticles.explode(12);
         break;
-        
+
       default:
         this.hitParticles.setPosition(x, y);
         this.hitParticles.setConfig({
@@ -1065,7 +1182,8 @@ class PlayScene extends Phaser.Scene {
 
     // Show level up with magical effect
     this.showNotification(`🌟 Level ${this.gameState.level}! 🌟`, '#ffaa00', 2000);
-    
+    this.gameState.healerSpawnedThisLevel = false;
+
     // Reset boss progress for new level
     this.gameState.enemiesKilled = 0;
     this.updateBossProgress();
@@ -1074,6 +1192,12 @@ class PlayScene extends Phaser.Scene {
   loseLife() {
     this.gameState.lives--;
     this.livesText.setText(`Lives: ${this.gameState.lives}`);
+
+    // Spawn a healer if one hasn't been spawned this level
+  if (this.gameState.lives > 0 && !this.gameState.healerSpawnedThisLevel) {
+    this.spawnHealerAlly();
+    this.gameState.healerSpawnedThisLevel = true;
+  }
 
     // Reset combo on life lost
     this.gameState.comboCount = 0;
@@ -1122,7 +1246,7 @@ class PlayScene extends Phaser.Scene {
     // Final stats
     const timeElapsed = (Date.now() - this.gameState.startTime) / 1000;
     const finalWPM = Math.round((this.gameState.correctWords / (timeElapsed / 60))) || 0;
-    const accuracy = this.gameState.wordsTyped > 0 ? 
+    const accuracy = this.gameState.wordsTyped > 0 ?
       Math.round((this.gameState.correctWords / this.gameState.wordsTyped) * 100) : 0;
 
     const statsText = [
@@ -1204,12 +1328,12 @@ export function initializeGame(parentElement) {
   if (game) {
     game.destroy(true);
   }
-  
+
   const gameConfig = {
     ...config,
     parent: parentElement
   };
-  
+
   game = new Phaser.Game(gameConfig);
   return game;
 }
