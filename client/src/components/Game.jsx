@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { initializeGame, destroyGame } from "../game/main.js";
+import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 
-const Game = () => {
+const Game = ({ onRestart }) => {
   const gameRef = useRef(null);
   const [gameStats, setGameStats] = useState({
     score: 0,
@@ -10,12 +12,43 @@ const Game = () => {
     wpm: 0
   });
   const [gameStatus, setGameStatus] = useState('loading'); // loading, playing, gameOver
+  const [sessionSaving, setSessionSaving] = useState(false);
+  const { user, isAuthenticated, updateUserStats } = useAuth();
+
+  const handleGameComplete = async (gameSessionData) => {
+    if (!isAuthenticated) {
+      console.log('Game completed but user not authenticated, skipping save');
+      return;
+    }
+
+    console.log('🎮 Game completed! Sending session data:', gameSessionData);
+    setSessionSaving(true);
+    try {
+      const response = await axios.post('/games/session', gameSessionData);
+      console.log('📡 Backend response:', response.data);
+      if (response.data.success) {
+        console.log('✅ Game session saved successfully');
+        updateUserStats(response.data.updatedStats);
+      } else {
+        console.error('❌ Backend returned success: false');
+      }
+    } catch (error) {
+      console.error('❌ Failed to save game session:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+    } finally {
+      setSessionSaving(false);
+    }
+  };
 
   useEffect(() => {
     // Initialize the game when component mounts
     if (gameRef.current) {
       console.log("Initializing Phaser game...");
-      const game = initializeGame(gameRef.current);
+      const game = initializeGame(gameRef.current, handleGameComplete);
       
       // Set up event listeners for game state updates
       // Note: In a real implementation, you'd emit events from Phaser scenes
@@ -33,7 +66,7 @@ const Game = () => {
   const handleRestartGame = () => {
     if (gameRef.current) {
       destroyGame();
-      const game = initializeGame(gameRef.current);
+      const game = initializeGame(gameRef.current, handleGameComplete);
       setGameStatus('playing');
       setGameStats({
         score: 0,
@@ -44,82 +77,28 @@ const Game = () => {
     }
   };
 
+  // Connect restart function to parent
+  useEffect(() => {
+    if (onRestart) {
+      // Update parent's restart handler to use our local handler
+      window.gameRestartHandler = handleRestartGame;
+    }
+  }, [onRestart]);
+
   return (
-    <div className="game-wrapper">
-      <div className="game-header">
-        <div className="header-content">
-          <div className="logo">TypeSlayer</div>
-          <div className="game-nav">
-            <button className="nav-btn" onClick={handleRestartGame}>
-              Restart Game
-            </button>
-            <button className="nav-btn" onClick={() => window.location.reload()}>
-              New Game
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="stats-bar">
-        <div className="stat-item">
-          <div className="stat-label">Score</div>
-          <div className="stat-value">{gameStats.score}</div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-label">Level</div>
-          <div className="stat-value">{gameStats.level}</div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-label">Lives</div>
-          <div className="stat-value">{gameStats.lives}</div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-label">WPM</div>
-          <div className="stat-value">{gameStats.wpm}</div>
-        </div>
-      </div>
-
-      <div className="game-canvas-container">
-        <div 
-          ref={gameRef} 
-          id="game-container"
-          className="game-canvas"
-          style={{
-            width: '800px',
-            height: '600px',
-            margin: '0 auto',
-            border: '2px solid #333333',
-            borderRadius: '12px',
-            boxShadow: '0 0 30px rgba(0, 255, 136, 0.2)',
-            background: '#0a0a0a'
-          }}
-        />
-      </div>
-
-      <div className="instructions-panel">
-        <h3>How to Play TypeSlayer</h3>
-        <ul>
-          <li>Words will fall from the top of the screen</li>
-          <li>Type each word exactly as it appears</li>
-          <li>Press Enter to submit your typed word</li>
-          <li>Successfully typed words will explode with green particles</li>
-          <li>If a word reaches the bottom, you lose a life</li>
-          <li>Level up every 300 points for increased difficulty</li>
-          <li>Track your Words Per Minute (WPM) to improve speed</li>
-          <li>Game over when you lose all 3 lives</li>
-        </ul>
-        
-        <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(0, 255, 136, 0.1)', borderRadius: '8px' }}>
-          <strong>Pro Tips:</strong>
-          <ul style={{ marginTop: '10px' }}>
-            <li>Focus on accuracy first, then speed</li>
-            <li>Keep your eyes on the falling words, not the keyboard</li>
-            <li>Use proper touch typing technique</li>
-            <li>Stay calm as the game gets faster</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+    <div 
+      ref={gameRef} 
+      id="game-container"
+      className="game-canvas"
+      style={{
+        width: '800px',
+        height: '600px',
+        border: '2px solid #333333',
+        borderRadius: '12px',
+        boxShadow: '0 0 30px rgba(0, 255, 136, 0.2)',
+        background: '#0a0a0a'
+      }}
+    />
   );
 };
 
