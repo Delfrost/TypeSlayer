@@ -4,6 +4,87 @@ const User = require('../models/User');
 
 const router = express.Router();
 
+// Main leaderboard route that frontend uses
+router.get('/', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const period = req.query.period || 'all'; // all, week, month
+    
+    // Calculate date filter based on period
+    let dateFilter = {};
+    const now = new Date();
+    
+    if (period === 'week') {
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      dateFilter = { createdAt: { $gte: oneWeekAgo } };
+    } else if (period === 'month') {
+      const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      dateFilter = { createdAt: { $gte: oneMonthAgo } };
+    }
+    // 'all' means no date filter
+
+    // Get top players based on WPM (primary metric) with accuracy as tiebreaker
+    const topPlayers = await GameSession.aggregate([
+      { $match: dateFilter },
+      {
+        $group: {
+          _id: '$user',
+          bestWPM: { $max: '$wpm' },
+          bestScore: { $max: '$score' },
+          bestLevel: { $max: '$levelReached' },
+          averageAccuracy: { $avg: '$accuracy' },
+          gamesPlayed: { $sum: 1 },
+          recentGame: { $last: '$$ROOT' }
+        }
+      },
+      { 
+        $sort: { 
+          bestWPM: -1, 
+          averageAccuracy: -1, 
+          bestScore: -1 
+        } 
+      },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'userInfo'
+        }
+      },
+      { $unwind: '$userInfo' },
+      {
+        $project: {
+          _id: 0,
+          username: '$userInfo.username',
+          wpm: '$bestWPM',
+          accuracy: { $round: ['$averageAccuracy', 1] },
+          score: '$bestScore',
+          level: '$bestLevel',
+          gamesPlayed: '$gamesPlayed',
+          lastPlayed: '$recentGame.createdAt'
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      topPlayers,
+      period,
+      totalPlayers: topPlayers.length
+    });
+
+  } catch (error) {
+    console.error('Leaderboard fetch error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Server error fetching leaderboard',
+      topPlayers: []
+    });
+  }
+});
+
 router.get('/top-scores', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;

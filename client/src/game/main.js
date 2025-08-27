@@ -306,6 +306,9 @@ class PlayScene extends Phaser.Scene {
       spawnRate: 2500, // Slightly slower spawn rate
       wordsTyped: 0,
       correctWords: 0,
+      totalCharactersTyped: 0,
+      correctCharacters: 0,
+      errorCharacters: 0,
       startTime: Date.now(),
       currentInput: "",
       bossActive: false,
@@ -810,6 +813,10 @@ spawnHealerAlly() {
     if (spellCast) {
       this.gameState.wordsTyped++;
       this.gameState.correctWords++;
+      
+      // Track character accuracy - add the length of correctly typed word
+      this.gameState.totalCharactersTyped += spellText.length;
+      this.gameState.correctCharacters += spellText.length;
 
       if (!allyHelped) {
         // Increase combo for enemy defeats
@@ -827,6 +834,11 @@ spawnHealerAlly() {
         this.inputDisplay.setStyle({ backgroundColor: '#2d3436' });
       });
     } else {
+      // Track failed word attempt
+      this.gameState.wordsTyped++;
+      this.gameState.totalCharactersTyped += spellText.length;
+      this.gameState.errorCharacters += spellText.length;
+      
       // Reset combo on miss
       this.gameState.comboCount = 0;
       this.gameState.comboMultiplier = 1;
@@ -1150,9 +1162,19 @@ spawnHealerAlly() {
   }
 
   updateWPM() {
-    const timeElapsed = (Date.now() - this.gameState.startTime) / 60000;
-    const wpm = Math.round(this.gameState.correctWords / timeElapsed) || 0;
-    this.wpmText.setText(`WPM: ${wpm}`);
+    const timeElapsed = (Date.now() - this.gameState.startTime) / 60000; // minutes
+    if (timeElapsed < 0.0167) return; // Wait at least 1 second before calculating
+    
+    // Standard WPM calculation: (characters typed / 5) / minutes
+    const grossWPM = Math.round((this.gameState.totalCharactersTyped / 5) / timeElapsed) || 0;
+    const netWPM = Math.round(((this.gameState.totalCharactersTyped - this.gameState.errorCharacters) / 5) / timeElapsed) || 0;
+    
+    // Use net WPM for display (more accurate for typing tests)
+    const displayWPM = Math.max(0, netWPM);
+    this.wpmText.setText(`WPM: ${displayWPM}`);
+    
+    // Store current WPM for game session tracking
+    this.gameState.currentWPM = displayWPM;
   }
 
   updateBossProgress() {
@@ -1227,7 +1249,40 @@ spawnHealerAlly() {
     this.enemyGroup.clear(true, true);
     this.allyGroup.clear(true, true);
 
+    // Trigger game session save if callback exists
+    if (this.onGameComplete) {
+      const gameSessionData = this.getGameSessionData();
+      this.onGameComplete(gameSessionData);
+    }
+
     this.showGameOverScreen();
+  }
+
+  getGameSessionData() {
+    const timeElapsed = (Date.now() - this.gameState.startTime) / 1000;
+    const timeElapsedMinutes = timeElapsed / 60;
+    
+    const finalWPM = timeElapsedMinutes > 0 ? 
+      Math.round(((this.gameState.totalCharactersTyped - this.gameState.errorCharacters) / 5) / timeElapsedMinutes) : 0;
+    
+    const charAccuracy = this.gameState.totalCharactersTyped > 0 ?
+      Math.round((this.gameState.correctCharacters / this.gameState.totalCharactersTyped) * 100) : 0;
+
+    return {
+      score: this.gameState.score,
+      levelReached: this.gameState.level,
+      wpm: Math.max(0, finalWPM),
+      accuracy: Math.max(0, charAccuracy),
+      wordsTyped: this.gameState.totalCharactersTyped,
+      durationSeconds: Math.round(timeElapsed),
+      gameMode: 'normal',
+      gameStats: {
+        enemiesDefeated: this.gameState.correctWords,
+        bossesDefeated: Math.floor(this.gameState.level - 1), // Approximate based on level
+        alliesHelped: this.allyGroup.children.entries.filter(ally => ally.getData('matched')).length || 0,
+        livesLost: 3 - this.gameState.lives
+      }
+    };
   }
 
   showGameOverScreen() {
@@ -1245,16 +1300,24 @@ spawnHealerAlly() {
 
     // Final stats
     const timeElapsed = (Date.now() - this.gameState.startTime) / 1000;
-    const finalWPM = Math.round((this.gameState.correctWords / (timeElapsed / 60))) || 0;
-    const accuracy = this.gameState.wordsTyped > 0 ?
+    const timeElapsedMinutes = timeElapsed / 60;
+    
+    // Use proper WPM calculation: (correct characters / 5) / minutes
+    const finalWPM = timeElapsedMinutes > 0 ? 
+      Math.round(((this.gameState.totalCharactersTyped - this.gameState.errorCharacters) / 5) / timeElapsedMinutes) : 0;
+    
+    // Calculate both word accuracy and character accuracy
+    const wordAccuracy = this.gameState.wordsTyped > 0 ?
       Math.round((this.gameState.correctWords / this.gameState.wordsTyped) * 100) : 0;
+    const charAccuracy = this.gameState.totalCharactersTyped > 0 ?
+      Math.round((this.gameState.correctCharacters / this.gameState.totalCharactersTyped) * 100) : 0;
 
     const statsText = [
       `🏆 Final Score: ${this.gameState.score}`,
       `⭐ Level Reached: ${this.gameState.level}`,
       `⚔️ Enemies Defeated: ${this.gameState.correctWords}`,
       `⚡ Final WPM: ${finalWPM}`,
-      `🎯 Accuracy: ${accuracy}%`,
+      `🎯 Accuracy: ${charAccuracy}%`,
       `🔥 Max Combo: x${this.gameState.maxCombo}`,
       `⏱️ Quest Duration: ${Math.round(timeElapsed)}s`
     ].join('\n');
@@ -1324,7 +1387,7 @@ const config = {
 // Initialize game when DOM is ready
 let game = null;
 
-export function initializeGame(parentElement) {
+export function initializeGame(parentElement, onGameComplete) {
   if (game) {
     game.destroy(true);
   }
@@ -1335,6 +1398,17 @@ export function initializeGame(parentElement) {
   };
 
   game = new Phaser.Game(gameConfig);
+  
+  // Set the game complete callback on the PlayScene
+  if (onGameComplete) {
+    game.events.on('ready', () => {
+      const playScene = game.scene.getScene('PlayScene');
+      if (playScene) {
+        playScene.onGameComplete = onGameComplete;
+      }
+    });
+  }
+  
   return game;
 }
 

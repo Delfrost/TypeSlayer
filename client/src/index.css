@@ -39,9 +39,44 @@ body {
     flex-direction: column;
 }
 
+.app-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 80px); /* Ensure minimum height */
+    width: 100%;
+}
+
+/* Loading Screen */
+.loading-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    color: var(--text-primary);
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(0, 255, 136, 0.3);
+    border-top: 3px solid var(--text-accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+.loading-screen p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
 /* Welcome Screen */
 .welcome-screen {
-    min-height: 100vh;
+    min-height: calc(100vh - 80px); /* Account for navbar */
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -50,6 +85,8 @@ body {
         radial-gradient(circle at 80% 20%, rgba(0, 170, 255, 0.1) 0%, transparent 50%),
         linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
     padding: 20px;
+    position: relative;
+    z-index: 1;
 }
 
 .welcome-container {
@@ -195,11 +232,16 @@ kbd {
     flex-direction: column;
 }
 
-/* Header */
+/* Game Wrapper */
+.game-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 80px); /* Account for navbar */
+}
+
+/* Deprecated - keeping for compatibility */
 .game-header {
-    background: rgba(26, 26, 26, 0.95);
-    backdrop-filter: blur(10px);
-    border-bottom: 2px solid var(--border-color);
+    display: none; /* Hidden since we use navbar now */
     padding: 1rem 0;
     position: sticky;
     top: 0;
@@ -468,4 +510,113 @@ input:focus {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-accent);
+}
+
+/* New UI Components */
+.user-welcome {
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 1rem 0;
+    text-align: center;
+}
+
+.user-welcome p {
+    color: var(--text-accent);
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.user-stats {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.user-stats span {
+    margin: 0 0.5rem;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.secondary-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.secondary-btn {
+    background: linear-gradient(45deg, var(--bg-tertiary), var(--bg-secondary));
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all var(--transition-fast);
+    font-family: var(--font-secondary);
+    min-width: 120px;
+}
+
+.secondary-btn:hover {
+    border-color: var(--text-accent);
+    color: var(--text-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.2);
+}
+
+.secondary-btn.register {
+    background: linear-gradient(45deg, rgba(0, 255, 136, 0.2), rgba(0, 170, 255, 0.2));
+    border-color: var(--text-accent);
+    color: var(--text-accent);
+}
+
+.secondary-btn.register:hover {
+    background: linear-gradient(45deg, var(--text-accent), #00aaff);
+    color: var(--bg-primary);
+}
+
+.secondary-btn.logout {
+    border-color: rgba(255, 68, 68, 0.5);
+    color: #ff6b9d;
+}
+
+.secondary-btn.logout:hover {
+    background: linear-gradient(45deg, rgba(255, 68, 68, 0.2), rgba(255, 107, 157, 0.2));
+    border-color: #ff6b9d;
+    color: #ff6b9d;
+}
+
+/* Mobile Responsive for new components */
+@media (max-width: 768px) {
+    .secondary-buttons {
+        flex-direction: column;
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .secondary-btn {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .user-welcome {
+        margin: 0.75rem 0;
+        padding: 0.75rem;
+    }
+    
+    .user-welcome p {
+        font-size: 1rem;
+    }
+    
+    .user-stats {
+        font-size: 0.8rem;
+    }
 }

@@ -33,29 +33,47 @@ router.post('/session', protect, validateGameSession, async (req, res) => {
 router.get('/history', protect, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
     const sessions = await GameSession.find({ user: req.user.id })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .select('score levelReached wpm accuracy wordsTyped createdAt gameMode gameStats');
 
     const total = await GameSession.countDocuments({ user: req.user.id });
 
+    // Format the sessions to match frontend expectations
+    const games = sessions.map(session => ({
+      _id: session._id,
+      score: session.score,
+      level: session.levelReached,
+      wpm: session.wpm,
+      accuracy: Math.round(session.accuracy),
+      wordsTyped: session.wordsTyped,
+      playedAt: session.createdAt,
+      gameMode: session.gameMode || 'normal',
+      gameStats: session.gameStats
+    }));
+
     res.json({
       success: true,
-      sessions,
+      games,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
-        totalSessions: total,
+        totalGames: total,
         hasMore: page < Math.ceil(total / limit)
       }
     });
   } catch (error) {
     console.error('Game history fetch error:', error);
-    res.status(500).json({ error: 'Server error fetching game history' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Server error fetching game history',
+      games: []
+    });
   }
 });
 
