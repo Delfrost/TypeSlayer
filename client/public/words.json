@@ -1,0 +1,24 @@
+{
+  "easy": [
+    "sun", "orb", "sky", "gem", "key", "axe", "bow", "cup", "jar", "map",
+    "star", "moon", "fire", "ice", "wind", "bolt", "heal", "ward", "mana", "cast",
+    "gold", "iron", "mithril", "sword", "shield", "helm", "boot", "ring", "cape"
+  ],
+  "medium": [
+    "magic", "power", "quest", "light", "dark", "ghost", "demon", "angel", "curse",
+    "bless", "spirit", "valor", "grace", "wrath", "spell", "charm", "scroll", "tome",
+    "potion", "elixir", "forest", "castle", "cavern", "dragon", "grimoire", "relic"
+  ],
+  "hard": [
+    "sorcery", "enchant", "wizard", "warlock", "paladin", "cleric", "prophet",
+    "destiny", "fortune", "victory", "defeat", "legend", "mythic", "ancient",
+    "sacred", "divine", "inferno", "blizzard", "tempest", "radiance", "barrier",
+    "sanctuary", "mysticism", "eternity", "infinity", "oblivion", "celestial"
+  ],
+  "expert": [
+    "pyroblast", "thunderbolt", "spellbound", "cataclysm", "apocalypse",
+    "annihilation", "transcend", "omnipotence", "metamorphosis", "necromancer",
+    "archangel", "behemoth", "leviathan", "phenomenon", "equilibrium",
+    "phantasmagoria", "quintessence", "serendipity", "incantation", "excalibur"
+  ]
+}

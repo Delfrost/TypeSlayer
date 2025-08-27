@@ -1,42 +1,8 @@
 import Phaser from "phaser";
-
-// Words by difficulty level for regular enemies
-const enemyWordsByLevel = {
-  1: ["fire", "ice", "wind", "bolt", "heal", "ward", "mana", "cast"],
-  2: ["blaze", "frost", "storm", "shock", "light", "shield", "magic", "power"],
-  3: ["inferno", "blizzard", "tempest", "lightning", "radiance", "barrier", "sorcery", "enchant"],
-  4: ["pyroblast", "absolute", "hurricane", "thunderbolt", "sanctuary", "mysticism", "spellbound"],
-  5: ["cataclysm", "devastation", "apocalypse", "annihilation", "transcendence", "omnipotence", "metamorphosis"]
-};
-
-// Boss sentences/incantations by level
-const bossLinesByLevel = {
-  1: [
-    "The shadows whisper your name",
-    "Fire burns in the darkness",
-    "Ancient magic flows through me"
-  ],
-  2: [
-    "By the power of forgotten realms I strike",
-    "Thunder roars across the mystical plains",
-    "Ice and fire dance in eternal combat"
-  ],
-  3: [
-    "Behold the fury of a thousand burning stars",
-    "The very fabric of reality bends to my will",
-    "From the depths of chaos I summon destruction"
-  ],
-  4: [
-    "Witness the convergence of all elemental forces",
-    "Time itself trembles before my ancient power",
-    "The cosmos shall bow before my supreme authority"
-  ],
-  5: [
-    "I am the alpha and omega of all magical existence",
-    "Reality is but a canvas upon which I paint destruction",
-    "The universe itself is merely my weapon to wield against you"
-  ]
-};
+import { levelData } from './level-data.js';
+import { BackgroundManager } from './BackgroundManager.js';
+import { Enemy } from './Enemy.js';
+import { Player } from './Player.js'; 
 
 // Friendly ally words that give bonuses
 const allyWords = {
@@ -282,6 +248,19 @@ class PlayScene extends Phaser.Scene {
   }
 
   preload() {
+      console.log('🤺 Preloading player assets...');
+      this.load.spritesheet('player-sword', '/assets/player-sword.png', {
+        frameWidth: 64,
+        frameHeight: 64
+      });
+      this.load.spritesheet('player-bow', '/assets/bow-shooting.png', {
+        frameWidth: 64,
+        frameHeight: 64
+      });
+    this.load.json('wordlist', '/words.json');
+    this.load.json('sentenceParts', '/sentence_parts.json');
+    BackgroundManager.preload(this);
+
     // Create magical particle texture
     this.add.graphics()
       .fillStyle(0xffffff)
@@ -296,6 +275,45 @@ class PlayScene extends Phaser.Scene {
   }
 
   create() {
+    this.wordlist = this.cache.json.get('wordlist');
+    this.sentenceParts = this.cache.json.get('sentenceParts');
+    // --- ADD THIS VALIDATION BLOCK ---
+    if (!this.wordlist || !this.sentenceParts) {
+      console.error("🔥 FATAL ERROR: Word list or sentence parts JSON not found!");
+      console.error("Please ensure 'words.json' and 'sentence_parts.json' are in the /public folder and there are no typos.");
+      
+      // Stop the scene from proceeding
+      // You can also add a user-facing error message here
+      this.add.text(400, 300, 'Error: Could not load game data.', { fontSize: '24px', fill: '#ff0000' }).setOrigin(0.5);
+      return; 
+    }
+    // --- END OF VALIDATION BLOCK ---
+  //   // An idle pose using a single frame from the sword sheet
+  //   this.anims.create({
+  //   key: 'player-idle',
+  //   // Use the front-facing "walk south" frames for a breathing animation.
+  //   // NOTE: Frame numbers are based on a standard 13-frame wide sheet.
+  //   frames: this.anims.generateFrameNumbers('player-sword', { frames: [130, 131] }),
+  //   frameRate: 2,   // A slow frame rate for a subtle effect
+  //   repeat: -1      // Loop forever
+  // });
+  // // A sword slash animation
+  // this.anims.create({
+  //   key: 'player-attack-sword',
+  //   // Assumes a 13-frame wide sheet, using frames from the "slash south" animation
+  //   frames: this.anims.generateFrameNumbers('player-sword', { start: 182, end: 187 }),
+  //   frameRate: 12,
+  //   repeat: 0 // Play only once
+  // });
+
+  // // A bow shooting animation
+  // this.anims.create({
+  //   key: 'player-shoot-bow',
+  //   // Assumes a 13-frame wide sheet, using frames from the "shoot south" animation
+  //   frames: this.anims.generateFrameNumbers('player-bow', { start: 221, end: 233 }),
+  //   frameRate: 15,
+  //   repeat: 0 // Play only once
+  // });
     // Initialize game state with new features
     this.gameState = {
       score: 0,
@@ -324,10 +342,8 @@ class PlayScene extends Phaser.Scene {
       lastAllySpawnTime: 0 
     };
 
-    // Create mystical background
-    const graphics = this.add.graphics();
-    graphics.fillGradientStyle(0x1a0a2e, 0x16213e, 0x0f3460, 0x533483);
-    graphics.fillRect(0, 0, 800, 600);
+    this.backgroundManager = new BackgroundManager(this);
+    this.backgroundManager.create();
 
     // Create groups
     this.enemyGroup = this.add.group();
@@ -350,6 +366,8 @@ class PlayScene extends Phaser.Scene {
       emitting: false,
       alpha: { start: 0.8, end: 0 }
     });
+
+    // this.player = new Player(this, 400, 520); 
 
     // UI elements with magical styling
     this.scoreText = this.add.text(20, 20, 'Score: 0', {
@@ -436,6 +454,46 @@ class PlayScene extends Phaser.Scene {
     // Handle magical input
     this.input.keyboard.on("keydown", this.handleKeyInput, this);
   }
+  
+  getWordsForLevel(level) {
+      if (level >= 5) {
+        return this.wordlist.expert;
+      }
+      if (level >= 4) {
+        return this.wordlist.hard;
+      }
+      if (level >= 2) {
+        return this.wordlist.medium;
+      }
+      return this.wordlist.easy;
+    }
+
+  generateBossSentence(level) {
+    const parts = this.sentenceParts;
+    let template;
+
+    // Select a template based on the level
+    if (level >= 4) {
+      template = Phaser.Utils.Array.GetRandom(parts.templates.epic);
+    } else if (level >= 2) {
+      template = Phaser.Utils.Array.GetRandom(parts.templates.medium);
+    } else {
+      template = Phaser.Utils.Array.GetRandom(parts.templates.simple);
+    }
+
+    // Build the sentence by replacing placeholders
+    const sentence = template.map(part => {
+      if (part.startsWith('{') && part.endsWith('}')) {
+        const wordType = part.slice(1, -1); // e.g., "noun", "verb"
+        return Phaser.Utils.Array.GetRandom(parts.words[wordType]);
+      }
+      return part;
+    }).join(' ');
+
+    // Capitalize the first letter and return
+    return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+  }
+    
 
   startGame() {
     // Start enemy spawning with magical timing
@@ -591,84 +649,49 @@ spawnHealerAlly() {
   this.showNotification("A healer comes to your aid!", allyType.color, 2000);
 }
 
-  spawnRegularEnemy() {
-    const enemyTypeNames = ['minion', 'warrior', 'mage', 'demon'];
-    const enemyTypeName = Phaser.Utils.Array.GetRandom(enemyTypeNames);
-    const enemyType = enemyTypes[enemyTypeName];
+// client/src/game/main.js -> in PlayScene
+spawnRegularEnemy() {
+  const enemyTypeNames = ['minion', 'warrior', 'mage', 'demon'];
+  const enemyTypeName = Phaser.Utils.Array.GetRandom(enemyTypeNames);
+  const enemyType = enemyTypes[enemyTypeName];
 
-    // Get word for current level
-    const currentWords = enemyWordsByLevel[Math.min(this.gameState.level, 5)] || enemyWordsByLevel[1];
-    const word = Phaser.Utils.Array.GetRandom(currentWords);
+  const currentWords = this.getWordsForLevel(this.gameState.level);
+  const word = Phaser.Utils.Array.GetRandom(currentWords);
 
-    const startX = Phaser.Math.Between(80, 720);
-    const startY = -50;
-
-    // Create enemy with magical appearance
-    const enemy = this.add.text(startX, startY, enemyType.sprite, {
-      fontSize: `${32 * enemyType.scale}px`
-    }).setOrigin(0.5);
-
-    // Create word display above enemy
-    const enemyWordText = this.add.text(startX, startY - 40, word, {
-      fontSize: "20px",
-      fontFamily: "Courier New, monospace",
-      fill: enemyType.color,
-      backgroundColor: "#000033",
-      padding: { x: 8, y: 4 },
-      stroke: "#ffffff",
-      strokeThickness: 1
-    }).setOrigin(0.5);
-
-    // Store enemy data
-    enemy.setData('word', word);
-    enemy.setData('wordText', enemyWordText);
-    enemy.setData('hp', enemyType.hp);
-    enemy.setData('maxHp', enemyType.hp);
-    enemy.setData('type', enemyTypeName);
-    enemy.setData('points', enemyType.points);
-    enemy.setData('matched', false);
-    enemy.setData('isBoss', false);
-    enemy.setData('isAlly', false);
-
-    this.enemyGroup.add(enemy);
-
-    // Apply time slow effect if active
-    const currentSpeed = this.gameState.timeSlowActive ?
-      this.gameState.enemySpeed * 1.8 : this.gameState.enemySpeed;
-
-    // Animate enemy descent with magical trail
-    const tween = this.tweens.add({
-      targets: [enemy, enemyWordText],
-      y: `+=${650}`,
-      duration: currentSpeed,
-      ease: 'Linear',
-      onComplete: () => {
-        if (!enemy.getData('matched') && !this.gameState.gameOver) {
-          if (!this.gameState.shield) {
-            this.loseLife();
-            this.createMagicalExplosion(enemy.x, enemy.y, '#ff4444', 'miss');
-          } else {
-            this.gameState.shield = false;
-            this.updateStatusDisplay();
-            this.showNotification("🛡️ Shield absorbed damage!", '#ffaa00', 1500);
-          }
-        }
-        enemy.destroy();
-        enemyWordText.destroy();
-      }
-    });
-
-    enemy.setData('tween', tween);
-    enemyWordText.setData('tween', tween);
+  // Get the path data for the current level
+  const levelPaths = levelData[this.gameState.level]?.paths;
+  if (!levelPaths || levelPaths.length === 0) {
+    console.error(`No paths found for level ${this.gameState.level}!`);
+    return;
   }
+  // Select a random path for this enemy to follow
+  const path = Phaser.Utils.Array.GetRandom(levelPaths);
+
+  // Create a new Enemy instance
+  const enemy = new Enemy(this, path, enemyType, word);
+
+  // Tell the enemy to start moving and define what happens when it finishes
+  enemy.startFollow((finishedEnemy) => {
+    // This code runs when the enemy reaches the end of its path
+    if (!finishedEnemy.getData('matched') && !this.gameState.gameOver) {
+      if (!this.gameState.shield) {
+        this.loseLife();
+        this.createMagicalExplosion(finishedEnemy.x, finishedEnemy.y, '#ff4444', 'miss');
+      } else {
+        this.gameState.shield = false;
+        this.updateStatusDisplay();
+        this.showNotification("🛡️ Shield absorbed damage!", '#ffaa00', 1500);
+      }
+    }
+  });
+}
 
   spawnBoss() {
     this.gameState.bossActive = true;
     const bossType = enemyTypes.boss;
 
     // Get boss line for current level
-    const currentLines = bossLinesByLevel[Math.min(this.gameState.level, 5)] || bossLinesByLevel[1];
-    const line = Phaser.Utils.Array.GetRandom(currentLines);
+    const line = this.generateBossSentence(this.gameState.level);
 
     const startX = 400; // Center spawn for boss
     const startY = -50;
@@ -1052,8 +1075,7 @@ spawnHealerAlly() {
         ease: 'Back.easeOut',
         onComplete: () => {
           // Give a new sentence
-          const currentLines = bossLinesByLevel[Math.min(this.gameState.level, 5)] || bossLinesByLevel[1];
-          const newLine = Phaser.Utils.Array.GetRandom(currentLines);
+          const newLine = this.generateBossSentence(this.gameState.level);
 
           enemy.setData('word', newLine);
           wordText.setText(newLine);
@@ -1191,6 +1213,7 @@ spawnHealerAlly() {
   levelUp(newLevel) {
     this.gameState.level = newLevel;
     this.levelText.setText(`Level: ${this.gameState.level}`);
+    this.backgroundManager.updateBackground(newLevel);
 
     // Increase difficulty more gradually
     this.gameState.enemySpeed = Math.max(2500, 4200 - (this.gameState.level * 300));

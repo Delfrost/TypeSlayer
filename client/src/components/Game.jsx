@@ -85,7 +85,7 @@ const Game = ({ onRestart }) => {
     }
   }, [onRestart]);
 
-  return (
+ return (
     <div 
       ref={gameRef} 
       id="game-container"
@@ -96,7 +96,10 @@ const Game = ({ onRestart }) => {
         border: '2px solid #333333',
         borderRadius: '12px',
         boxShadow: '0 0 30px rgba(0, 255, 136, 0.2)',
-        background: '#0a0a0a'
+        background: '#0a0a0a',
+        // This is the key: it prevents the browser from trying to scale the canvas
+        // and respects the native size set by Phaser.
+        overflow: 'hidden' 
       }}
     />
   );

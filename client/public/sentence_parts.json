@@ -1,0 +1,33 @@
+{
+  "templates": {
+    "simple": [
+      ["The", "{noun}", "{verb}", "you"],
+      ["My", "{noun}", "{verb}", "your", "{noun}"],
+      ["I", "{verb}", "the", "{adjective}", "{noun}"]
+    ],
+    "medium": [
+      ["{adjective}", "{noun}s", "{verb}", "the", "{noun}", "of", "{noun}"],
+      ["Behold", "the", "{adjective}", "{noun}", "of", "{adjective}", "power"],
+      ["Your", "{noun}", "will", "{verb}", "before", "my", "{adjective}", "{noun}"]
+    ],
+    "epic": [
+      ["I", "shall", "{verb}", "the", "{adjective}", "{noun}", "from", "the", "{noun}", "of", "{noun}"],
+      ["The", "very", "{noun}", "of", "{noun}", "shall", "{verb}", "by", "my", "{adjective}", "will"],
+      ["From", "the", "{adjective}", "{noun}", "I", "{verb}", "{adjective}", "destruction"]
+    ]
+  },
+  "words": {
+    "noun": [
+      "shadows", "souls", "stars", "chaos", "realms", "magic", "darkness", "flames",
+      "abyss", "void", "storm", "fury", "secrets", "throne", "crown", "power"
+    ],
+    "adjective": [
+      "ancient", "forgotten", "burning", "cryptic", "ethereal", "corrupted",
+      "supreme", "unholy", "eternal", "crimson", "forbidden", "cosmic"
+    ],
+    "verb": [
+      "whisper", "command", "consume", "shatter", "unleash", "summon", "devour",
+      "erase", "control", "destroy", "bend", "forge", "master"
+    ]
+  }
+}
