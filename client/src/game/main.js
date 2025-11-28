@@ -277,51 +277,41 @@ class PlayScene extends Phaser.Scene {
   create() {
     this.wordlist = this.cache.json.get('wordlist');
     this.sentenceParts = this.cache.json.get('sentenceParts');
-    // --- ADD THIS VALIDATION BLOCK ---
+    
+    // --- 1. DATA VALIDATION ---
     if (!this.wordlist || !this.sentenceParts) {
       console.error("🔥 FATAL ERROR: Word list or sentence parts JSON not found!");
-      console.error("Please ensure 'words.json' and 'sentence_parts.json' are in the /public folder and there are no typos.");
-      
-      // Stop the scene from proceeding
-      // You can also add a user-facing error message here
       this.add.text(400, 300, 'Error: Could not load game data.', { fontSize: '24px', fill: '#ff0000' }).setOrigin(0.5);
       return; 
     }
-    // --- END OF VALIDATION BLOCK ---
-  //   // An idle pose using a single frame from the sword sheet
-  //   this.anims.create({
-  //   key: 'player-idle',
-  //   // Use the front-facing "walk south" frames for a breathing animation.
-  //   // NOTE: Frame numbers are based on a standard 13-frame wide sheet.
-  //   frames: this.anims.generateFrameNumbers('player-sword', { frames: [130, 131] }),
-  //   frameRate: 2,   // A slow frame rate for a subtle effect
-  //   repeat: -1      // Loop forever
-  // });
-  // // A sword slash animation
-  // this.anims.create({
-  //   key: 'player-attack-sword',
-  //   // Assumes a 13-frame wide sheet, using frames from the "slash south" animation
-  //   frames: this.anims.generateFrameNumbers('player-sword', { start: 182, end: 187 }),
-  //   frameRate: 12,
-  //   repeat: 0 // Play only once
-  // });
 
-  // // A bow shooting animation
-  // this.anims.create({
-  //   key: 'player-shoot-bow',
-  //   // Assumes a 13-frame wide sheet, using frames from the "shoot south" animation
-  //   frames: this.anims.generateFrameNumbers('player-bow', { start: 221, end: 233 }),
-  //   frameRate: 15,
-  //   repeat: 0 // Play only once
-  // });
-    // Initialize game state with new features
+    // --- 2. DEFINE ANIMATIONS (Based on your Spreadsheet) ---
+    // WALKING (Base movement - using Sword sheet)
+    this.anims.create({ key: 'walk-up', frames: this.anims.generateFrameNumbers('player-sword', { start: 192, end: 200 }), frameRate: 10, repeat: -1 });
+    this.anims.create({ key: 'walk-left', frames: this.anims.generateFrameNumbers('player-sword', { start: 216, end: 224 }), frameRate: 10, repeat: -1 });
+    this.anims.create({ key: 'walk-down', frames: this.anims.generateFrameNumbers('player-sword', { start: 240, end: 248 }), frameRate: 10, repeat: -1 });
+    this.anims.create({ key: 'walk-right', frames: this.anims.generateFrameNumbers('player-sword', { start: 264, end: 272 }), frameRate: 10, repeat: -1 });
+
+    // SLASHING (Sword sheet)
+    this.anims.create({ key: 'slash-up', frames: this.anims.generateFrameNumbers('player-sword', { start: 288, end: 293 }), frameRate: 20, repeat: 0 });
+    this.anims.create({ key: 'slash-left', frames: this.anims.generateFrameNumbers('player-sword', { start: 312, end: 317 }), frameRate: 20, repeat: 0 });
+    this.anims.create({ key: 'slash-down', frames: this.anims.generateFrameNumbers('player-sword', { start: 336, end: 341 }), frameRate: 20, repeat: 0 });
+    this.anims.create({ key: 'slash-right', frames: this.anims.generateFrameNumbers('player-sword', { start: 360, end: 365 }), frameRate: 20, repeat: 0 });
+
+    // BOW SHOOTING (Bow sheet)
+    this.anims.create({ key: 'shoot-up', frames: this.anims.generateFrameNumbers('player-bow', { start: 384, end: 396 }), frameRate: 30, repeat: 0 });
+    this.anims.create({ key: 'shoot-left', frames: this.anims.generateFrameNumbers('player-bow', { start: 408, end: 420 }), frameRate: 30, repeat: 0 });
+    this.anims.create({ key: 'shoot-down', frames: this.anims.generateFrameNumbers('player-bow', { start: 432, end: 444 }), frameRate: 30, repeat: 0 });
+    this.anims.create({ key: 'shoot-right', frames: this.anims.generateFrameNumbers('player-bow', { start: 456, end: 468 }), frameRate: 30, repeat: 0 });
+
+    // --- 3. INITIALIZE GAME STATE ---
     this.gameState = {
       score: 0,
       level: 1,
       lives: 3,
       gameOver: false,
-      enemySpeed: 4000, // Slower starting speed
-      spawnRate: 2500, // Slightly slower spawn rate
+      enemySpeed: 4000, 
+      spawnRate: 2500, 
       wordsTyped: 0,
       correctWords: 0,
       totalCharactersTyped: 0,
@@ -337,19 +327,19 @@ class PlayScene extends Phaser.Scene {
       maxCombo: 0,
       shield: false,
       timeSlowActive: false,
-      allySpawnChance: 0.15,// 15% chance for ally to spawn
-      healerSpawnedThisLevel: false, // <-- ADD THIS
+      allySpawnChance: 0.15,
+      healerSpawnedThisLevel: false,
       lastAllySpawnTime: 0 
     };
 
+    // --- 4. MANAGERS & GROUPS ---
     this.backgroundManager = new BackgroundManager(this);
     this.backgroundManager.create();
 
-    // Create groups
     this.enemyGroup = this.add.group();
     this.allyGroup = this.add.group();
 
-    // Create enhanced particle systems
+    // --- 5. PARTICLES ---
     this.hitParticles = this.add.particles(0, 0, 'particle', {
       speed: { min: 100, max: 200 },
       scale: { start: 1.2, end: 0 },
@@ -367,91 +357,82 @@ class PlayScene extends Phaser.Scene {
       alpha: { start: 0.8, end: 0 }
     });
 
-    // this.player = new Player(this, 400, 520); 
-
-    // UI elements with magical styling
+    // --- 6. UI ELEMENTS ---
     this.scoreText = this.add.text(20, 20, 'Score: 0', {
-      fontSize: '24px',
-      fontFamily: 'Courier New, monospace',
-      fill: '#ff6b9d',
-      stroke: '#000033',
-      strokeThickness: 2
+      fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#ff6b9d', stroke: '#000033', strokeThickness: 2
     });
 
     this.levelText = this.add.text(20, 50, 'Level: 1', {
-      fontSize: '24px',
-      fontFamily: 'Courier New, monospace',
-      fill: '#a8e6cf',
-      stroke: '#000033',
-      strokeThickness: 2
+      fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#a8e6cf', stroke: '#000033', strokeThickness: 2
     });
 
     this.livesText = this.add.text(20, 80, 'Lives: 3', {
-      fontSize: '24px',
-      fontFamily: 'Courier New, monospace',
-      fill: '#ffd93d',
-      stroke: '#000033',
-      strokeThickness: 2
+      fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#ffd93d', stroke: '#000033', strokeThickness: 2
     });
 
     this.wpmText = this.add.text(650, 20, 'WPM: 0', {
-      fontSize: '24px',
-      fontFamily: 'Courier New, monospace',
-      fill: '#a29bfe',
-      stroke: '#000033',
-      strokeThickness: 2
+      fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#a29bfe', stroke: '#000033', strokeThickness: 2
     });
 
-    // New combo and status displays
     this.comboText = this.add.text(650, 50, 'Combo: x1', {
-      fontSize: '20px',
-      fontFamily: 'Courier New, monospace',
-      fill: '#ffaa00',
-      stroke: '#000033',
-      strokeThickness: 2
+      fontSize: '20px', fontFamily: 'Courier New, monospace', fill: '#ffaa00', stroke: '#000033', strokeThickness: 2
     });
 
     this.statusText = this.add.text(400, 50, '', {
-      fontSize: '18px',
-      fontFamily: 'Arial',
-      fill: '#00ff88',
-      stroke: '#000033',
-      strokeThickness: 1
+      fontSize: '18px', fontFamily: 'Arial', fill: '#00ff88', stroke: '#000033', strokeThickness: 1
     }).setOrigin(0.5);
 
-    // Progress to boss indicator
     this.bossProgressText = this.add.text(400, 20, '', {
-      fontSize: '18px',
-      fontFamily: 'Arial',
-      fill: '#fd79a8',
-      stroke: '#000033',
-      strokeThickness: 1
+      fontSize: '18px', fontFamily: 'Arial', fill: '#fd79a8', stroke: '#000033', strokeThickness: 1
     }).setOrigin(0.5);
 
-    // Enhanced input display with magical border
-    this.inputDisplay = this.add.text(400, 550, "", {
-      fontSize: "26px",
-      fontFamily: "Courier New, monospace",
-      fill: "#ffffff",
-      backgroundColor: "#2d3436",
-      padding: { x: 20, y: 10 },
-      stroke: "#6c5ce7",
-      strokeThickness: 2
-    }).setOrigin(0.5);
+    // Input Display
+    this.inputDisplay = this.add.text(400, 450, "", {
+      fontSize: "26px", fontFamily: "Courier New, monospace", fill: "#ffffff", backgroundColor: "#2d3436",
+      padding: { x: 20, y: 10 }, stroke: "#6c5ce7", strokeThickness: 2
+    }).setOrigin(0.5).setDepth(20);
 
-    // Magical input hint
-    this.inputHint = this.add.text(400, 580, "Channel your magic through typing...", {
-      fontSize: "16px",
-      fontFamily: "Arial",
-      fill: "#b2bec3",
-      fontStyle: "italic"
-    }).setOrigin(0.5);
+    this.inputHint = this.add.text(400, 485, "Channel your magic through typing...", {
+      fontSize: "16px", fontFamily: "Arial", fill: "#b2bec3", fontStyle: "italic"
+    }).setOrigin(0.5).setDepth(20);
 
-    // Start the magical quest
+    // --- 7. PLAYER & START LOGIC ---
+    // ... inside create(), before creating the Player ...
+
+    // --- RANGE INDICATOR (Transparent Circle) ---
+    // This helps the player see where the "Slash Zone" is
+    const slashRadius = 250; // Must match Player.js radius
+    
+    const rangeCircle = this.add.graphics();
+    rangeCircle.lineStyle(2, 0x00ff88, 0.3); // Faint green line
+    rangeCircle.fillStyle(0x00ff88, 0.05);   // Very faint fill
+    rangeCircle.fillCircle(400, 520, slashRadius); // Drawn at player position
+    rangeCircle.strokeCircle(400, 520, slashRadius);
+    rangeCircle.setDepth(1); // Below player/enemies
+    // Create the player instance
+    this.player = new Player(this, 400, 520); 
+
+    // Initialize timers (startGame creates this.enemyTimer)
     this.startGame();
     this.updateBossProgress();
 
-    // Handle magical input
+    // **CINEMATIC INTRO LOGIC**
+    // Immediately pause the enemy spawning
+    if (this.enemyTimer) {
+      this.enemyTimer.paused = true;
+    }
+    
+    // Play the intro sequence
+    this.player.playIntroSequence(() => {
+      // Callback: Runs when player finishes walking to center
+      if (this.enemyTimer) {
+        this.enemyTimer.paused = false; // Resume spawning
+        this.enemyTimer.delay = this.gameState.spawnRate; // Ensure correct rate
+      }
+      this.showNotification("TYPE TO SURVIVE!", '#ff0000', 2000);
+    });
+
+    // --- 8. INPUT HANDLING ---
     this.input.keyboard.on("keydown", this.handleKeyInput, this);
   }
   
@@ -826,6 +807,7 @@ spawnRegularEnemy() {
 
         if (enemyWord === spellText && !enemy.getData('matched')) {
           spellCast = true;
+          this.player.attack(enemy.x, enemy.y);
           const damage = isBoss ? 1 : enemy.getData('hp'); // Bosses take 1 damage per correct spell
 
           this.damageEnemy(enemy, damage);

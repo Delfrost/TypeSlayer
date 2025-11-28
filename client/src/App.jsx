@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './context/AuthContext.jsx';
 import Game from './components/Game.jsx';
+//import TestAnimation from './components/TestAnimation.jsx';
 import axios from 'axios';
 import './index.css';
 
@@ -165,9 +166,15 @@ function App() {
     fetchPlayerHistory();
   };
 
+  // return (
+  //   <div className="App">
+  //      <TestAnimation />
+  //   </div>
+  // );
+  
   return (
     <div className="App">
-      {/* Simple Navbar */}
+      //{/* Simple Navbar */}
       <nav style={{
         background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%)',
         backdropFilter: 'blur(20px)',
@@ -1114,6 +1121,6 @@ function App() {
       )}
     </div>
   );
-}
+} 
 
 export default App;

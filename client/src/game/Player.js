@@ -1,31 +1,95 @@
-/**
- * Represents the main player character in the game.
- * It handles its own appearance and animations.
- */
+import Phaser from "phaser";
+
 export class Player extends Phaser.GameObjects.Sprite {
-  /**
-   * @param {Phaser.Scene} scene The scene the player belongs to.
-   * @param {number} x The horizontal position of the player.
-   * @param {number} y The vertical position of the player.
-   */
   constructor(scene, x, y) {
-    // We use the 'sword' spritesheet by default for the idle pose
     super(scene, x, y, 'player-sword');
-
+    
     this.scene = scene;
-    this.setScale(2.0); // Make the player sprite a bit larger
-    this.setDepth(10); // Ensure the player is in front of enemies
-
-    // Add the player to the scene's display list
+    this.setScale(1.5); // [Fixed] Smaller size (was 2.0)
+    this.setDepth(10); 
+    
     scene.add.existing(this);
-
-    // Set the initial animation to idle
-    this.play('player-idle');
+    
+    // Start facing down (towards the camera/player)
+    this.play('walk-down');
+    this.stop(); 
+    
+    this.currentWeapon = 'sword'; 
+    // Define the "Slash Zone" radius
+    this.slashRadius = 250; 
   }
 
-  // We will add attack logic here in the next step
-  attack(targetEnemy) {
-    console.log(`Attacking ${targetEnemy.getData('type')}!`);
-    // Placeholder for sword/bow logic
+  playIntroSequence(onComplete) {
+    this.setPosition(400, 700); 
+    this.play('walk-up');
+    
+    this.scene.tweens.add({
+      targets: this,
+      y: 520,
+      duration: 2000,
+      ease: 'Linear',
+      onComplete: () => {
+        this.stop(); 
+        this.setFrame(240); // Face down
+        if (onComplete) onComplete();
+      }
+    });
+  }
+
+  attack(targetX, targetY) {
+    // 1. Calculate distance
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, targetX, targetY);
+
+    // 2. Determine direction
+    const direction = this.getDirection(targetX, targetY);
+
+    // 3. Choose Attack based on Range
+    // Inside the circle -> Slash. Outside -> Shoot.
+    if (dist < this.slashRadius) {
+      this.slash(direction);
+    } else {
+      this.shoot(direction);
+    }
+  }
+
+  slash(direction) {
+    if (this.currentWeapon !== 'sword') {
+      this.setTexture('player-sword');
+      this.currentWeapon = 'sword';
+    }
+    
+    this.play(`slash-${direction}`, true);
+    
+    this.once('animationcomplete', () => {
+      // Stay facing that direction
+      this.play(`walk-${direction}`);
+      this.stop();
+    });
+  }
+
+  shoot(direction) {
+    if (this.currentWeapon !== 'bow') {
+      this.setTexture('player-bow');
+      this.currentWeapon = 'bow';
+    }
+
+    this.play(`shoot-${direction}`, true);
+    
+    this.once('animationcomplete', () => {
+      this.play(`walk-${direction}`);
+      this.stop();
+    });
+  }
+
+  getDirection(tx, ty) {
+    const dx = tx - this.x;
+    const dy = ty - this.y;
+
+    // Standard 4-way direction check
+    if (Math.abs(dx) > Math.abs(dy)) {
+      return dx > 0 ? 'right' : 'left';
+    } else {
+      return dy > 0 ? 'down' : 'up';
+    }
   }
 }
