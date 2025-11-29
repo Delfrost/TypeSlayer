@@ -780,10 +780,10 @@ spawnRegularEnemy() {
 
         if (enemyWord === spellText && !enemy.getData('matched')) {
           spellCast = true;
-          this.player.attack(enemy.x, enemy.y);
+          const attackType = this.player.attack(enemy.x, enemy.y);
           const damage = isBoss ? 1 : enemy.getData('hp'); // Bosses take 1 damage per correct spell
 
-          this.damageEnemy(enemy, damage);
+          this.damageEnemy(enemy, damage, attackType);
         }
       });
     }
@@ -948,7 +948,33 @@ spawnRegularEnemy() {
     this.statusText.setText(statusText);
   }
 
-  damageEnemy(enemy, damage) {
+  handleEnemyDefeat(enemy) {
+    const isBoss = enemy.getData('isBoss');
+    const wordText = enemy.getData('wordText');
+    
+    const points = enemy.getData('points') * this.gameState.comboMultiplier;
+    this.updateScore(points);
+
+    if (isBoss) {
+      this.gameState.bossActive = false;
+      this.gameState.enemiesKilled = 0;
+      this.createMagicalExplosion(enemy.x, enemy.y, '#ffaa00', 'boss_death');
+      this.showNotification("🎉 BOSS DEFEATED! 🎉", '#ffaa00', 1500);
+    } else {
+      this.gameState.enemiesKilled++;
+      this.createMagicalExplosion(enemy.x, enemy.y, '#00ff88', 'enemy_death');
+    }
+
+    if (this.gameState.comboMultiplier > 1) {
+      this.showNotification(`${points} pts (x${this.gameState.comboMultiplier} combo!)`, '#ffaa00', 1000);
+    }
+
+    enemy.destroy();
+    if (wordText) wordText.destroy();
+    this.updateBossProgress();
+  }
+
+  damageEnemy(enemy, damage, attackType) {
     const currentHp = enemy.getData('hp');
     const newHp = currentHp - damage;
     const isBoss = enemy.getData('isBoss');
@@ -964,30 +990,16 @@ spawnRegularEnemy() {
       const wordText = enemy.getData('wordText');
       if (wordText) wordText.setText(''); // Clear text immediately
 
-      // 2. Fire Visual Projectile
-      this.fireMagicMissile(this.player.x, this.player.y - 40, enemy.x, enemy.y, () => {
-          
+      if (attackType === 'cast') {
+        // 2. Fire Visual Projectile for cast attacks
+        this.fireMagicMissile(this.player.x, this.player.y - 40, enemy.x, enemy.y, () => {
           // 3. EXPLOSION & CLEANUP (Runs when missile hits)
-          const points = enemy.getData('points') * this.gameState.comboMultiplier;
-          this.updateScore(points);
-
-          if (isBoss) {
-            this.gameState.bossActive = false;
-            this.gameState.enemiesKilled = 0;
-            this.createMagicalExplosion(enemy.x, enemy.y, '#ffaa00', 'boss_death');
-            this.showNotification("🎉 BOSS DEFEATED! 🎉", '#ffaa00', 1500);
-          } else {
-            this.gameState.enemiesKilled++;
-            this.createMagicalExplosion(enemy.x, enemy.y, '#00ff88', 'enemy_death');
-          }
-
-          if (this.gameState.comboMultiplier > 1) {
-            this.showNotification(`${points} pts (x${this.gameState.comboMultiplier} combo!)`, '#ffaa00', 1000);
-          }
-
-          enemy.destroy();
-          if (wordText) wordText.destroy();
-      });
+          this.handleEnemyDefeat(enemy);
+        });
+      } else { // 'slash'
+        // 2. Instant explosion for slash attacks
+        this.handleEnemyDefeat(enemy);
+      }
 
     } else if (isBoss) {
         // Boss Hit (Non-fatal) - Instant effect
@@ -1073,35 +1085,6 @@ spawnRegularEnemy() {
           }
       });
   }
-
-  createMagicalExplosion(x, y, color, type) {
-      // ... (Keep your existing explosion logic) ...
-      const colorValue = Phaser.Display.Color.HexStringToColor(color).color;
-      switch (type) {
-        case 'boss_death':
-          this.hitParticles.setPosition(x, y);
-          this.hitParticles.setConfig({ tint: colorValue, speed: { min: 150, max: 300 }, quantity: 20, lifespan: 1500 });
-          this.hitParticles.explode(20);
-          this.magicParticles.setPosition(x, y);
-          this.magicParticles.explode(15);
-          break;
-        case 'boss_hit':
-          this.magicParticles.setPosition(x, y);
-          this.magicParticles.setConfig({ tint: colorValue, quantity: 8 });
-          this.magicParticles.explode(8);
-          break;
-        case 'ally_help':
-          this.magicParticles.setPosition(x, y);
-          this.magicParticles.setConfig({ tint: colorValue, speed: { min: 80, max: 150 }, quantity: 12, lifespan: 1500 });
-          this.magicParticles.explode(12);
-          break;
-        default:
-          this.hitParticles.setPosition(x, y);
-          this.hitParticles.setConfig({ tint: colorValue, speed: { min: 100, max: 200 }, quantity: 8 });
-          this.hitParticles.explode(8);
-      }
-  }
-
 
   createMagicalExplosion(x, y, color, type) {
     const colorValue = Phaser.Display.Color.HexStringToColor(color).color;

@@ -40,8 +40,10 @@ export class Player extends Phaser.GameObjects.Sprite {
     // If close -> Slash. If far -> Cast Spell.
     if (dist < this.slashRadius) {
       this.slash();
+      return 'slash';
     } else {
       this.cast();
+      return 'cast';
     }
   }
 
