@@ -174,7 +174,7 @@ function App() {
   
   return (
     <div className="App">
-      //{/* Simple Navbar */}
+      {/* Simple Navbar */}
       <nav style={{
         background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%)',
         backdropFilter: 'blur(20px)',

@@ -248,19 +248,18 @@ class PlayScene extends Phaser.Scene {
   }
 
   preload() {
-      console.log('🤺 Preloading player assets...');
-      this.load.spritesheet('player-sword', '/assets/player-sword.png', {
-        frameWidth: 64,
-        frameHeight: 64
-      });
-      this.load.spritesheet('player-bow', '/assets/bow-shooting.png', {
-        frameWidth: 64,
-        frameHeight: 64
-      });
+    console.log('🤺 Preloading player assets...');
+    // 1. Load the BASE (Walking/Idle/Slash/Cast)
+    this.load.spritesheet('player-sword', '/assets/player-sword.png', { 
+        frameWidth: 64, frameHeight: 64 
+    });
+
+    // REMOVED: player-bow loading
+
     this.load.json('wordlist', '/words.json');
     this.load.json('sentenceParts', '/sentence_parts.json');
     BackgroundManager.preload(this);
-
+  
     // Create magical particle texture
     this.add.graphics()
       .fillStyle(0xffffff)
@@ -272,39 +271,44 @@ class PlayScene extends Phaser.Scene {
       .fillGradientStyle(0x00ff88, 0x00ff88, 0x88ff00, 0x88ff00)
       .fillCircle(8, 8, 8)
       .generateTexture('energy', 16, 16);
+      
+    // Create Projectile Texture (A glowing dot)
+    const projectile = this.add.graphics();
+    projectile.fillStyle(0xff0088, 1); // Neon Pink/Purple core
+    projectile.fillCircle(6, 6, 6);
+    projectile.lineStyle(2, 0xffffff, 1);
+    projectile.strokeCircle(6, 6, 6);
+    projectile.generateTexture('projectile', 12, 12);
+    projectile.destroy();
   }
 
   create() {
     this.wordlist = this.cache.json.get('wordlist');
     this.sentenceParts = this.cache.json.get('sentenceParts');
     
-    // --- 1. DATA VALIDATION ---
     if (!this.wordlist || !this.sentenceParts) {
       console.error("🔥 FATAL ERROR: Word list or sentence parts JSON not found!");
-      this.add.text(400, 300, 'Error: Could not load game data.', { fontSize: '24px', fill: '#ff0000' }).setOrigin(0.5);
       return; 
     }
 
-    // --- 2. DEFINE ANIMATIONS (Based on your Spreadsheet) ---
-    // WALKING (Base movement - using Sword sheet)
+    // --- ANIMATIONS ---
+
+    // 1. WALK (Row 8 - Standard 24-col sheet)
     this.anims.create({ key: 'walk-up', frames: this.anims.generateFrameNumbers('player-sword', { start: 192, end: 200 }), frameRate: 10, repeat: -1 });
-    this.anims.create({ key: 'walk-left', frames: this.anims.generateFrameNumbers('player-sword', { start: 216, end: 224 }), frameRate: 10, repeat: -1 });
-    this.anims.create({ key: 'walk-down', frames: this.anims.generateFrameNumbers('player-sword', { start: 240, end: 248 }), frameRate: 10, repeat: -1 });
-    this.anims.create({ key: 'walk-right', frames: this.anims.generateFrameNumbers('player-sword', { start: 264, end: 272 }), frameRate: 10, repeat: -1 });
 
-    // SLASHING (Sword sheet)
-    this.anims.create({ key: 'slash-up', frames: this.anims.generateFrameNumbers('player-sword', { start: 288, end: 293 }), frameRate: 20, repeat: 0 });
-    this.anims.create({ key: 'slash-left', frames: this.anims.generateFrameNumbers('player-sword', { start: 312, end: 317 }), frameRate: 20, repeat: 0 });
-    this.anims.create({ key: 'slash-down', frames: this.anims.generateFrameNumbers('player-sword', { start: 336, end: 341 }), frameRate: 20, repeat: 0 });
-    this.anims.create({ key: 'slash-right', frames: this.anims.generateFrameNumbers('player-sword', { start: 360, end: 365 }), frameRate: 20, repeat: 0 });
+    // 2. SLASH (Using Thrust Frames 96-103)
+    this.anims.create({ key: 'slash-up', frames: this.anims.generateFrameNumbers('player-sword', { start: 96, end: 103 }), frameRate: 20, repeat: 0 });
 
-    // BOW SHOOTING (Bow sheet)
-    this.anims.create({ key: 'shoot-up', frames: this.anims.generateFrameNumbers('player-bow', { start: 384, end: 396 }), frameRate: 30, repeat: 0 });
-    this.anims.create({ key: 'shoot-left', frames: this.anims.generateFrameNumbers('player-bow', { start: 408, end: 420 }), frameRate: 30, repeat: 0 });
-    this.anims.create({ key: 'shoot-down', frames: this.anims.generateFrameNumbers('player-bow', { start: 432, end: 444 }), frameRate: 30, repeat: 0 });
-    this.anims.create({ key: 'shoot-right', frames: this.anims.generateFrameNumbers('player-bow', { start: 456, end: 468 }), frameRate: 30, repeat: 0 });
+    // 3. CAST SPELL (Rows 0-3 are standard Spellcast)
+    // Up is Row 0. 24-column sheet -> Start 0, End 6
+    this.anims.create({ 
+        key: 'cast-up', 
+        frames: this.anims.generateFrameNumbers('player-sword', { start: 0, end: 6 }), 
+        frameRate: 15, 
+        repeat: 0 
+    });
 
-    // --- 3. INITIALIZE GAME STATE ---
+    // --- GAME STATE ---
     this.gameState = {
       score: 0,
       level: 1,
@@ -332,14 +336,15 @@ class PlayScene extends Phaser.Scene {
       lastAllySpawnTime: 0 
     };
 
-    // --- 4. MANAGERS & GROUPS ---
+    // --- MANAGERS ---
     this.backgroundManager = new BackgroundManager(this);
     this.backgroundManager.create();
 
     this.enemyGroup = this.add.group();
     this.allyGroup = this.add.group();
+    this.projectileGroup = this.add.group(); // Group for missiles
 
-    // --- 5. PARTICLES ---
+    // --- PARTICLES ---
     this.hitParticles = this.add.particles(0, 0, 'particle', {
       speed: { min: 100, max: 200 },
       scale: { start: 1.2, end: 0 },
@@ -357,36 +362,15 @@ class PlayScene extends Phaser.Scene {
       alpha: { start: 0.8, end: 0 }
     });
 
-    // --- 6. UI ELEMENTS ---
-    this.scoreText = this.add.text(20, 20, 'Score: 0', {
-      fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#ff6b9d', stroke: '#000033', strokeThickness: 2
-    });
+    // --- UI ---
+    this.scoreText = this.add.text(20, 20, 'Score: 0', { fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#ff6b9d', stroke: '#000033', strokeThickness: 2 });
+    this.levelText = this.add.text(20, 50, 'Level: 1', { fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#a8e6cf', stroke: '#000033', strokeThickness: 2 });
+    this.livesText = this.add.text(20, 80, 'Lives: 3', { fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#ffd93d', stroke: '#000033', strokeThickness: 2 });
+    this.wpmText = this.add.text(650, 20, 'WPM: 0', { fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#a29bfe', stroke: '#000033', strokeThickness: 2 });
+    this.comboText = this.add.text(650, 50, 'Combo: x1', { fontSize: '20px', fontFamily: 'Courier New, monospace', fill: '#ffaa00', stroke: '#000033', strokeThickness: 2 });
+    this.statusText = this.add.text(400, 50, '', { fontSize: '18px', fontFamily: 'Arial', fill: '#00ff88', stroke: '#000033', strokeThickness: 1 }).setOrigin(0.5);
+    this.bossProgressText = this.add.text(400, 20, '', { fontSize: '18px', fontFamily: 'Arial', fill: '#fd79a8', stroke: '#000033', strokeThickness: 1 }).setOrigin(0.5);
 
-    this.levelText = this.add.text(20, 50, 'Level: 1', {
-      fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#a8e6cf', stroke: '#000033', strokeThickness: 2
-    });
-
-    this.livesText = this.add.text(20, 80, 'Lives: 3', {
-      fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#ffd93d', stroke: '#000033', strokeThickness: 2
-    });
-
-    this.wpmText = this.add.text(650, 20, 'WPM: 0', {
-      fontSize: '24px', fontFamily: 'Courier New, monospace', fill: '#a29bfe', stroke: '#000033', strokeThickness: 2
-    });
-
-    this.comboText = this.add.text(650, 50, 'Combo: x1', {
-      fontSize: '20px', fontFamily: 'Courier New, monospace', fill: '#ffaa00', stroke: '#000033', strokeThickness: 2
-    });
-
-    this.statusText = this.add.text(400, 50, '', {
-      fontSize: '18px', fontFamily: 'Arial', fill: '#00ff88', stroke: '#000033', strokeThickness: 1
-    }).setOrigin(0.5);
-
-    this.bossProgressText = this.add.text(400, 20, '', {
-      fontSize: '18px', fontFamily: 'Arial', fill: '#fd79a8', stroke: '#000033', strokeThickness: 1
-    }).setOrigin(0.5);
-
-    // Input Display
     this.inputDisplay = this.add.text(400, 450, "", {
       fontSize: "26px", fontFamily: "Courier New, monospace", fill: "#ffffff", backgroundColor: "#2d3436",
       padding: { x: 20, y: 10 }, stroke: "#6c5ce7", strokeThickness: 2
@@ -396,46 +380,35 @@ class PlayScene extends Phaser.Scene {
       fontSize: "16px", fontFamily: "Arial", fill: "#b2bec3", fontStyle: "italic"
     }).setOrigin(0.5).setDepth(20);
 
-    // --- 7. PLAYER & START LOGIC ---
-    // ... inside create(), before creating the Player ...
-
-    // --- RANGE INDICATOR (Transparent Circle) ---
-    // This helps the player see where the "Slash Zone" is
-    const slashRadius = 250; // Must match Player.js radius
-    
+    // --- PLAYER & GAME START ---
+    const slashRadius = 250; 
     const rangeCircle = this.add.graphics();
-    rangeCircle.lineStyle(2, 0x00ff88, 0.3); // Faint green line
-    rangeCircle.fillStyle(0x00ff88, 0.05);   // Very faint fill
-    rangeCircle.fillCircle(400, 520, slashRadius); // Drawn at player position
+    rangeCircle.lineStyle(2, 0x00ff88, 0.3); 
+    rangeCircle.fillStyle(0x00ff88, 0.05); 
+    rangeCircle.fillCircle(400, 520, slashRadius); 
     rangeCircle.strokeCircle(400, 520, slashRadius);
-    rangeCircle.setDepth(1); // Below player/enemies
-    // Create the player instance
-    this.player = new Player(this, 400, 520); 
+    rangeCircle.setDepth(1); 
 
-    // Initialize timers (startGame creates this.enemyTimer)
+    this.player = new Player(this, 400, 650); 
+
     this.startGame();
     this.updateBossProgress();
 
-    // **CINEMATIC INTRO LOGIC**
-    // Immediately pause the enemy spawning
     if (this.enemyTimer) {
       this.enemyTimer.paused = true;
     }
     
-    // Play the intro sequence
     this.player.playIntroSequence(() => {
-      // Callback: Runs when player finishes walking to center
       if (this.enemyTimer) {
-        this.enemyTimer.paused = false; // Resume spawning
-        this.enemyTimer.delay = this.gameState.spawnRate; // Ensure correct rate
+        this.enemyTimer.paused = false; 
+        this.enemyTimer.delay = this.gameState.spawnRate; 
       }
       this.showNotification("TYPE TO SURVIVE!", '#ff0000', 2000);
     });
 
-    // --- 8. INPUT HANDLING ---
     this.input.keyboard.on("keydown", this.handleKeyInput, this);
   }
-  
+
   getWordsForLevel(level) {
       if (level >= 5) {
         return this.wordlist.expert;
@@ -982,127 +955,153 @@ spawnRegularEnemy() {
 
     enemy.setData('hp', newHp);
 
-    
-
     if (newHp <= 0) {
-      // Enemy defeated!
+      // 1. Mark as defeated so it can't be typed again
       enemy.setData('matched', true);
-
-      // Stop movement
       const tween = enemy.getData('tween');
-      if (tween) {
-        tween.stop();
-        const wordText = enemy.getData('wordText');
-        wordText.setText('');  
-      }
-
-      // Destroy enemy with magical effect
-      const points = enemy.getData('points') * this.gameState.comboMultiplier;
-      this.updateScore(points);
-
-      if (isBoss) {
-        this.gameState.bossActive = false;
-        this.gameState.enemiesKilled = 0;
-        this.createMagicalExplosion(enemy.x, enemy.y, '#ffaa00', 'boss_death');
-        this.showNotification("🎉 BOSS DEFEATED! 🎉", '#ffaa00', 1500);
-
-        // Clean up boss UI elements
-        
-      } else {
-        this.gameState.enemiesKilled++;
-        this.createMagicalExplosion(enemy.x, enemy.y, '#00ff88', 'enemy_death');
-      }
-
-      // Show combo bonus if active
-      if (this.gameState.comboMultiplier > 1) {
-        this.showNotification(`${points} pts (x${this.gameState.comboMultiplier} combo!)`, '#ffaa00', 1000);
-      }
-
-      // Destroy enemy and word text
+      if (tween) tween.stop();
+      
       const wordText = enemy.getData('wordText');
+      if (wordText) wordText.setText(''); // Clear text immediately
 
-      this.tweens.add({
-        targets: [enemy, wordText],
-        alpha: 0,
-        scale: 1.5,
-        duration: 300,
-        onComplete: () => {
+      // 2. Fire Visual Projectile
+      this.fireMagicMissile(this.player.x, this.player.y - 40, enemy.x, enemy.y, () => {
+          
+          // 3. EXPLOSION & CLEANUP (Runs when missile hits)
+          const points = enemy.getData('points') * this.gameState.comboMultiplier;
+          this.updateScore(points);
+
+          if (isBoss) {
+            this.gameState.bossActive = false;
+            this.gameState.enemiesKilled = 0;
+            this.createMagicalExplosion(enemy.x, enemy.y, '#ffaa00', 'boss_death');
+            this.showNotification("🎉 BOSS DEFEATED! 🎉", '#ffaa00', 1500);
+          } else {
+            this.gameState.enemiesKilled++;
+            this.createMagicalExplosion(enemy.x, enemy.y, '#00ff88', 'enemy_death');
+          }
+
+          if (this.gameState.comboMultiplier > 1) {
+            this.showNotification(`${points} pts (x${this.gameState.comboMultiplier} combo!)`, '#ffaa00', 1000);
+          }
+
           enemy.destroy();
-          wordText.destroy();
-        }
+          if (wordText) wordText.destroy();
       });
 
     } else if (isBoss) {
-      // Boss took damage but not defeated - animate knockback and respawn
-      this.createMagicalExplosion(enemy.x, enemy.y, '#ff4444', 'boss_hit');
-      this.showNotification(`Boss HP: ${newHp}/${enemy.getData('maxHp')}`, '#ff0088', 1000);
+        // Boss Hit (Non-fatal) - Instant effect
+        this.createMagicalExplosion(enemy.x, enemy.y, '#ff4444', 'boss_hit');
+        this.showNotification(`Boss HP: ${newHp}/${enemy.getData('maxHp')}`, '#ff0088', 1000);
+        // ... (rest of boss retreat logic remains the same) ...
+        // You might need to copy the boss retreat logic from your previous file here
+        // or just paste the function if you are replacing the whole file.
+        // For brevity, assuming you kept the logic:
+        enemy.setData('matched', true);
+        const tween = enemy.getData('tween');
+        if (tween) tween.stop();
+        const wordText = enemy.getData('wordText');
+        wordText.setAlpha(0);
 
-      // Prevent player from hitting the boss again while it's retreating
-      enemy.setData('matched', true);
-      // Stop current movement
-      const tween = enemy.getData('tween');
-      if (tween) {
-        tween.stop();
-      }
-
-      const wordText = enemy.getData('wordText');
-      // Hide the old text instead of clearing it
-      wordText.setAlpha(0);
-
-      // Animate boss getting knocked back up
-      this.tweens.add({
-        targets: [enemy, wordText], // Animate both together to keep them in sync
-        y: -100, // Move back to the top of the screen
-        duration: 1500,
-        ease: 'Back.easeOut',
-        onComplete: () => {
-          // Give a new sentence
-          const newLine = this.generateBossSentence(this.gameState.level);
-
-          enemy.setData('word', newLine);
-          wordText.setText(newLine);
-          // Make the new text visible
-          wordText.setAlpha(1);
-          // Allow the player to type the new sentence
-          enemy.setData('matched', false);
-
-          // Start falling again
-          const newTween = this.tweens.add({
+        this.tweens.add({
             targets: [enemy, wordText],
-            y: `+=${700}`, // Fall from the new position
-            duration: enemyTypes.boss.speed,
-            ease: 'Linear',
+            y: -100,
+            duration: 1500,
+            ease: 'Back.easeOut',
             onComplete: () => {
-              if (!enemy.getData('matched') && !this.gameState.gameOver) {
-                if (!this.gameState.shield) {
-                  this.loseLife();
-                  this.loseLife();
-                  this.createMagicalExplosion(enemy.x, enemy.y, '#ff0088', 'boss_miss');
-                } else {
-                  this.gameState.shield = false;
-                  this.updateStatusDisplay();
-                  this.showNotification("🛡️ Shield absorbed boss damage!", '#ffaa00', 1500);
-                }
-              }
-              this.gameState.bossActive = false;
-              enemy.destroy();
-              wordText.destroy();
+                const newLine = this.generateBossSentence(this.gameState.level);
+                enemy.setData('word', newLine);
+                wordText.setText(newLine);
+                wordText.setAlpha(1);
+                enemy.setData('matched', false);
+                
+                const newTween = this.tweens.add({
+                    targets: [enemy, wordText],
+                    y: `+=${700}`,
+                    duration: enemyTypes.boss.speed,
+                    ease: 'Linear',
+                    onComplete: () => {
+                        if (!enemy.getData('matched') && !this.gameState.gameOver) {
+                            if (!this.gameState.shield) {
+                                this.loseLife();
+                                this.loseLife();
+                                this.createMagicalExplosion(enemy.x, enemy.y, '#ff0088', 'boss_miss');
+                            } else {
+                                this.gameState.shield = false;
+                                this.updateStatusDisplay();
+                                this.showNotification("🛡️ Shield absorbed boss damage!", '#ffaa00', 1500);
+                            }
+                        }
+                        this.gameState.bossActive = false;
+                        enemy.destroy();
+                        wordText.destroy();
+                    }
+                });
+                enemy.setData('tween', newTween);
             }
-          });
-          enemy.setData('tween', newTween);
-        }
-      });
-      // --- END OF FIX ---
-
-      return; // Don't continue to normal enemy destruction
-    }
-     else if (!isBoss) {
-      // Regular enemy took damage but not defeated
+        });
+    } else if (!isBoss) {
+      // Regular Hit (Instant)
       this.createMagicalExplosion(enemy.x, enemy.y, '#ffaa00', 'hit');
     }
-
+    
     this.updateBossProgress();
   }
+
+  // === NEW HELPER: FIRE MAGIC MISSILE ===
+  fireMagicMissile(fromX, fromY, toX, toY, onComplete) {
+      // Calculate speed (pixels per second)
+      const speed = 700;
+      const dist = Phaser.Math.Distance.Between(fromX, fromY, toX, toY);
+      const duration = (dist / speed) * 1000;
+
+      // Create missile sprite
+      const missile = this.add.image(fromX, fromY, 'projectile');
+      missile.setTint(0xff0088); 
+      this.projectileGroup.add(missile);
+
+      // Tween it to target
+      this.tweens.add({
+          targets: missile,
+          x: toX,
+          y: toY,
+          duration: duration,
+          ease: 'Linear',
+          onComplete: () => {
+              missile.destroy();
+              if (onComplete) onComplete();
+          }
+      });
+  }
+
+  createMagicalExplosion(x, y, color, type) {
+      // ... (Keep your existing explosion logic) ...
+      const colorValue = Phaser.Display.Color.HexStringToColor(color).color;
+      switch (type) {
+        case 'boss_death':
+          this.hitParticles.setPosition(x, y);
+          this.hitParticles.setConfig({ tint: colorValue, speed: { min: 150, max: 300 }, quantity: 20, lifespan: 1500 });
+          this.hitParticles.explode(20);
+          this.magicParticles.setPosition(x, y);
+          this.magicParticles.explode(15);
+          break;
+        case 'boss_hit':
+          this.magicParticles.setPosition(x, y);
+          this.magicParticles.setConfig({ tint: colorValue, quantity: 8 });
+          this.magicParticles.explode(8);
+          break;
+        case 'ally_help':
+          this.magicParticles.setPosition(x, y);
+          this.magicParticles.setConfig({ tint: colorValue, speed: { min: 80, max: 150 }, quantity: 12, lifespan: 1500 });
+          this.magicParticles.explode(12);
+          break;
+        default:
+          this.hitParticles.setPosition(x, y);
+          this.hitParticles.setConfig({ tint: colorValue, speed: { min: 100, max: 200 }, quantity: 8 });
+          this.hitParticles.explode(8);
+      }
+  }
+
 
   createMagicalExplosion(x, y, color, type) {
     const colorValue = Phaser.Display.Color.HexStringToColor(color).color;
