@@ -51,11 +51,6 @@ export const levelData = {
         .lineTo(220, 150)
         .lineTo(350, 250)
         .lineTo(400, 350),
-      // Path 2: Follows the dirt path up from the bottom-left corner.
-      new Phaser.Curves.Path(150, 650)
-        .lineTo(250, 450)
-        .lineTo(350, 400)
-        .lineTo(400, 350),
       // Path 3: A more direct path from the left edge of the screen.
       new Phaser.Curves.Path(-50, 300)
         .lineTo(200, 320)
@@ -98,10 +93,6 @@ export const levelData = {
        // Path 3: From the far-left, between rock piles.
        new Phaser.Curves.Path(-50, 350)
         .lineTo(200, 330)
-        .lineTo(400, 320),
-       // Path 4: From the bottom, winding around the contraption.
-       new Phaser.Curves.Path(400, 650)
-        .lineTo(450, 450)
         .lineTo(400, 320),
        // Path 5: From the far-right, near the large sword.
        new Phaser.Curves.Path(850, 400)

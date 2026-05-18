@@ -53,8 +53,8 @@ const enemyTypes = {
   },
   boss: {
     name: "Dark Lord",
-    hp: 3, // Changed from 5 to 3
-    speed: 10000,
+    hp: 2, // Base HP — overridden per level in spawnBoss()
+    speed: 14000, // Base speed — overridden per level in spawnBoss()
     color: "#ff0088",
     points: 100,
     sprite: "👾",
@@ -110,7 +110,7 @@ class MenuScene extends Phaser.Scene {
 
     this.add.text(400, 80, "TypeSlayer", {
       fontSize: "96px",
-      fontFamily: "Courier New, monospace",
+      fontFamily: "'MedievalSharp', cursive",
       color: "#ffffff",
       stroke: "#a91101",
       strokeThickness: 8,
@@ -130,9 +130,9 @@ class MenuScene extends Phaser.Scene {
     // --- 4. Populate the "How to Play" Screen ---
     this.createHowToPlayScreen();
 
-    // --- 5. Populate the Placeholder Screens ---
-    this.createPlaceholderScreen(this.optionsContainer, "Game Options");
-    this.createPlaceholderScreen(this.storyContainer, "The Story So Far...");
+    // --- 5. Populate Options and Story Screens ---
+    this.createOptionsScreen();
+    this.createStoryScreen();
   }
 
   // --- Helper function to switch between screens ---
@@ -202,24 +202,66 @@ class MenuScene extends Phaser.Scene {
     this.howToPlayContainer.add(backButton);
   }
 
-  // --- Builds the placeholder screens for Options and Story ---
-  createPlaceholderScreen(container, titleText) {
+  // --- Builds Options Screen ---
+  createOptionsScreen() {
     const bgRect = this.add.rectangle(0, 0, 600, 450, 0x000000, 0.7);
     bgRect.setStrokeStyle(2, 0xff4444);
-    container.add(bgRect);
+    this.optionsContainer.add(bgRect);
 
-    const title = this.add.text(0, -180, titleText, {
-      fontSize: '40px', fontFamily: 'Arial', color: '#ff4444', stroke: '#000000', strokeThickness: 4
+    const title = this.add.text(0, -180, "Options", {
+      fontSize: '40px', fontFamily: "'MedievalSharp', cursive", color: '#ff4444', stroke: '#000000', strokeThickness: 4
     }).setOrigin(0.5);
-    container.add(title);
+    this.optionsContainer.add(title);
 
-    const placeholderText = this.add.text(0, 0, "This screen is not yet implemented.", {
-      fontSize: '22px', fontFamily: 'Arial', color: '#cccccc', fontStyle: 'italic'
-    }).setOrigin(0.5);
-    container.add(placeholderText);
+    const optionsText = [
+      "Volume: 100%",
+      "Difficulty: Normal",
+      "Language: English",
+      "Graphics: High"
+    ];
+
+    let yPos = -80;
+    optionsText.forEach(line => {
+      const text = this.add.text(0, yPos, line, {
+        fontSize: '24px', fontFamily: 'Arial', color: '#ffffff', align: 'center'
+      }).setOrigin(0.5);
+      this.optionsContainer.add(text);
+      yPos += 50;
+    });
 
     const backButton = this.createButton(0, 180, 'Back to Menu', () => this.switchScreen(this.mainMenuContainer));
-    container.add(backButton);
+    this.optionsContainer.add(backButton);
+  }
+
+  // --- Builds Story Screen ---
+  createStoryScreen() {
+    const bgRect = this.add.rectangle(0, 0, 600, 450, 0x000000, 0.8);
+    bgRect.setStrokeStyle(2, 0xffaa00);
+    this.storyContainer.add(bgRect);
+
+    const title = this.add.text(0, -180, "The Story So Far...", {
+      fontSize: '40px', fontFamily: "'MedievalSharp', cursive", color: '#ffaa00', stroke: '#000000', strokeThickness: 4
+    }).setOrigin(0.5);
+    this.storyContainer.add(title);
+
+    const storyText = [
+      "The ancient realm of Delfrost has been invaded by dark forces.",
+      "As the legendary TypeSlayer, you must channel the magic of words to defend your kingdom.",
+      "Use your typing speed and precision to cast spells, aid allies, and defeat the demon lords.",
+      "The fate of Delfrost lies in your hands... and your keyboard!"
+    ];
+
+    let yPos = -100;
+    storyText.forEach(line => {
+      const text = this.add.text(0, yPos, line, {
+        fontSize: '20px', fontFamily: 'Arial', color: '#cccccc', align: 'center', wordWrap: { width: 550 }, lineSpacing: 10
+      }).setOrigin(0.5);
+      this.storyContainer.add(text);
+      yPos += 70;
+    });
+
+    const backButton = this.createButton(0, 180, 'Back to Menu', () => this.switchScreen(this.mainMenuContainer));
+    this.storyContainer.add(backButton);
   }
 
   // --- A helper function to create consistent buttons ---
@@ -249,12 +291,22 @@ class PlayScene extends Phaser.Scene {
 
   preload() {
     console.log('🤺 Preloading player assets...');
-    // 1. Load the BASE (Walking/Idle/Slash/Cast)
+    // 1. Load the BASE (Walking/Idle/Slash/Cast) — 24-column LPC sheet
     this.load.spritesheet('player-sword', '/assets/player-sword.png', { 
         frameWidth: 64, frameHeight: 64 
     });
 
-    // REMOVED: player-bow loading
+    // Load bow sprite sheet — 18-column LPC sheet
+    this.load.spritesheet('player-bow', '/assets/bow-shooting.png', {
+        frameWidth: 64,
+        frameHeight: 64
+    });
+
+    // Load villain sprite sheet — 13-column LPC sheet
+    this.load.spritesheet('villain', '/assets/villian.png', {
+        frameWidth: 64,
+        frameHeight: 64
+    });
 
     this.load.json('wordlist', '/words.json');
     this.load.json('sentenceParts', '/sentence_parts.json');
@@ -264,22 +316,33 @@ class PlayScene extends Phaser.Scene {
     this.add.graphics()
       .fillStyle(0xffffff)
       .fillRect(0, 0, 6, 6)
-      .generateTexture('particle', 6, 6);
+      .generateTexture('particle', 6, 6)
+      .destroy();
 
     // Create energy burst texture
     this.add.graphics()
       .fillGradientStyle(0x00ff88, 0x00ff88, 0x88ff00, 0x88ff00)
       .fillCircle(8, 8, 8)
-      .generateTexture('energy', 16, 16);
+      .generateTexture('energy', 16, 16)
+      .destroy();
       
-    // Create Projectile Texture (A glowing dot)
-    const projectile = this.add.graphics();
-    projectile.fillStyle(0xff0088, 1); // Neon Pink/Purple core
-    projectile.fillCircle(6, 6, 6);
-    projectile.lineStyle(2, 0xffffff, 1);
-    projectile.strokeCircle(6, 6, 6);
-    projectile.generateTexture('projectile', 12, 12);
-    projectile.destroy();
+    // Create Projectile Texture (An arrow)
+    const arrow = this.add.graphics();
+    arrow.lineStyle(2, 0xcccccc, 1);
+    arrow.fillStyle(0xffffff, 1);
+    arrow.beginPath();
+    arrow.moveTo(0, 4);
+    arrow.lineTo(12, 4);
+    arrow.lineTo(12, 0);
+    arrow.lineTo(20, 5);
+    arrow.lineTo(12, 10);
+    arrow.lineTo(12, 6);
+    arrow.lineTo(0, 6);
+    arrow.closePath();
+    arrow.fillPath();
+    arrow.strokePath();
+    arrow.generateTexture('arrow', 20, 10);
+    arrow.destroy();
   }
 
   create() {
@@ -291,21 +354,51 @@ class PlayScene extends Phaser.Scene {
       return; 
     }
 
-    // --- ANIMATIONS ---
+    // --- PLAYER ANIMATIONS ---
+    // player-sword.png: 24-column LPC spritesheet (64x64 frames)
+    // Row 0-3: Spellcast (Up/Left/Down/Right), 7 frames each
+    // Row 4-7: Thrust (Up/Left/Down/Right), 8 frames each
+    // Row 8-11: Walk (Up/Left/Down/Right), 9 frames each
+    // Row 12-15: Slash (Up/Left/Down/Right), 6 frames each
 
-    // 1. WALK (Row 8 - Standard 24-col sheet)
-    this.anims.create({ key: 'walk-up', frames: this.anims.generateFrameNumbers('player-sword', { start: 192, end: 200 }), frameRate: 10, repeat: -1 });
+    // 1. WALK UP (Row 8, frames 192-200)
+    this.anims.create({ key: 'walk-up', frames: this.anims.generateFrameNumbers('player-sword', { start: 192, end: 200 }), frameRate: 15, repeat: -1 });
 
-    // 2. SLASH (Using Thrust Frames 96-103)
-    this.anims.create({ key: 'slash-up', frames: this.anims.generateFrameNumbers('player-sword', { start: 96, end: 103 }), frameRate: 20, repeat: 0 });
+    // 2. SWORD SLASH UP (Row 12, frames 288-293) — actual wide sword swing
+    this.anims.create({ key: 'slash-up', frames: this.anims.generateFrameNumbers('player-sword', { start: 288, end: 293 }), frameRate: 20, repeat: 0 });
 
-    // 3. CAST SPELL (Rows 0-3 are standard Spellcast)
-    // Up is Row 0. 24-column sheet -> Start 0, End 6
+    // 3. SPELLCAST UP (Row 0, frames 0-6) — kept for potential future use
     this.anims.create({ 
         key: 'cast-up', 
         frames: this.anims.generateFrameNumbers('player-sword', { start: 0, end: 6 }), 
         frameRate: 15, 
         repeat: 0 
+    });
+
+    // 4. BOW SHOOT UP — bow-shooting.png is 18-column LPC sheet
+    // Row 4: Thrust/Shoot Up (frames 72-79) — bow draw and release facing up
+    this.anims.create({
+        key: 'bow-shoot-up',
+        frames: this.anims.generateFrameNumbers('player-bow', { start: 72, end: 79 }),
+        frameRate: 15,
+        repeat: 0
+    });
+
+    // --- VILLAIN ANIMATIONS ---
+    // villian.png: 13-column LPC spritesheet (64x64 frames)
+    // Row 10: Walk Down (frames 130-138) — enemy walks toward player
+    this.anims.create({
+        key: 'villain-walk-down',
+        frames: this.anims.generateFrameNumbers('villain', { start: 130, end: 138 }),
+        frameRate: 8,
+        repeat: -1
+    });
+    // Row 14: Slash Down (frames 182-187) — villain attack animation
+    this.anims.create({
+        key: 'villain-slash-down',
+        frames: this.anims.generateFrameNumbers('villain', { start: 182, end: 187 }),
+        frameRate: 12,
+        repeat: 0
     });
 
     // --- GAME STATE ---
@@ -382,12 +475,12 @@ class PlayScene extends Phaser.Scene {
 
     // --- PLAYER & GAME START ---
     const slashRadius = 250; 
-    const rangeCircle = this.add.graphics();
-    rangeCircle.lineStyle(2, 0x00ff88, 0.3); 
-    rangeCircle.fillStyle(0x00ff88, 0.05); 
-    rangeCircle.fillCircle(400, 520, slashRadius); 
-    rangeCircle.strokeCircle(400, 520, slashRadius);
-    rangeCircle.setDepth(1); 
+    this.rangeCircle = this.add.graphics();
+    this.rangeCircle.lineStyle(2, 0x00ff88, 0.3); 
+    this.rangeCircle.fillStyle(0x00ff88, 0.05); 
+    this.rangeCircle.fillCircle(400, 520, slashRadius); 
+    this.rangeCircle.strokeCircle(400, 520, slashRadius);
+    this.rangeCircle.setDepth(1); 
 
     this.player = new Player(this, 400, 650); 
 
@@ -426,13 +519,16 @@ class PlayScene extends Phaser.Scene {
     const parts = this.sentenceParts;
     let template;
 
-    // Select a template based on the level
-    if (level >= 4) {
+    // Select a template based on the level — easier sentences for early levels
+    if (level >= 5) {
       template = Phaser.Utils.Array.GetRandom(parts.templates.epic);
-    } else if (level >= 2) {
+    } else if (level >= 4) {
       template = Phaser.Utils.Array.GetRandom(parts.templates.medium);
-    } else {
+    } else if (level >= 2) {
       template = Phaser.Utils.Array.GetRandom(parts.templates.simple);
+    } else {
+      // Level 1: very short, beginner-friendly sentences
+      template = Phaser.Utils.Array.GetRandom(parts.templates.beginner);
     }
 
     // Build the sentence by replacing placeholders
@@ -640,9 +736,25 @@ spawnRegularEnemy() {
   });
 }
 
+  // Boss HP and speed scale with level
+  getBossHpForLevel(level) {
+    const hpByLevel = { 1: 2, 2: 3, 3: 2, 4: 4, 5: 5 };
+    return hpByLevel[level] || 3;
+  }
+
+  getBossSpeedForLevel(level) {
+    // Higher = slower descent = more time to type
+    const speedByLevel = { 1: 16000, 2: 13000, 3: 15000, 4: 9000, 5: 8000 };
+    return speedByLevel[level] || 10000;
+  }
+
   spawnBoss() {
     this.gameState.bossActive = true;
     const bossType = enemyTypes.boss;
+
+    // Scale boss difficulty per level
+    const bossHp = this.getBossHpForLevel(this.gameState.level);
+    const bossSpeed = this.getBossSpeedForLevel(this.gameState.level);
 
     // Get boss line for current level
     const line = this.generateBossSentence(this.gameState.level);
@@ -663,10 +775,10 @@ spawnRegularEnemy() {
       align: 'center'
     }).setOrigin(0.5).setDepth(2);
 
-    // Create boss sprite after delay
-    const boss = this.add.text(startX, startY, bossType.sprite, {
-      fontSize: `${48 * bossType.scale}px`
-    }).setOrigin(0.5).setDepth(1);
+    // Create boss as a villain sprite (scaled up to appear as a boss)
+    const boss = this.add.sprite(startX, startY, 'villain').setOrigin(0.5).setDepth(1);
+    boss.setScale(2.5); // Boss is bigger than regular enemies
+    boss.play('villain-walk-down');
 
     // Hide boss initially, show after 2 seconds
     boss.setAlpha(0);
@@ -675,11 +787,11 @@ spawnRegularEnemy() {
     });
 
     
-    // Store boss data
+    // Store boss data — use level-scaled HP
     boss.setData('word', line);
     boss.setData('wordText', bossLineText);
-    boss.setData('hp', bossType.hp);
-    boss.setData('maxHp', bossType.hp);
+    boss.setData('hp', bossHp);
+    boss.setData('maxHp', bossHp);
     boss.setData('type', 'boss');
     boss.setData('points', bossType.points);
     boss.setData('matched', false);
@@ -692,41 +804,88 @@ spawnRegularEnemy() {
     // Dramatic boss entrance
     this.showNotification("🔥 BOSS APPROACHES! 🔥", '#ff0088', 2000);
 
-    // Apply time slow effect if active
+    // Apply time slow effect if active — use level-scaled speed
     const currentSpeed = this.gameState.timeSlowActive ?
-      bossType.speed * 1.8 : bossType.speed;
+      bossSpeed * 1.8 : bossSpeed;
 
-    // Animate boss descent (slower than regular enemies)
+    // Animate boss descent
     const tween = this.tweens.add({
       targets: [boss, bossLineText],
-      y: `+=${650}`,
+      y: 450, // Move towards player but stop in front of them
       duration: currentSpeed,
       ease: 'Linear',
       onComplete: () => {
         if (!boss.getData('matched') && !this.gameState.gameOver) {
-          if (!this.gameState.shield) {
-            this.loseLife();
-            
-            this.createMagicalExplosion(boss.x, boss.y, '#ff0088', 'boss_miss');
-          } else {
-            this.gameState.shield = false;
-            this.updateStatusDisplay();
-            this.showNotification("🛡️ Shield absorbed boss damage!", '#ffaa00', 1500);
-          }
-        }
-
-         this.gameState.bossActive = false;
-
-        if (boss.active) {
-          boss.destroy();
-        }
-        if (bossLineText.active) {
-          bossLineText.destroy();
+          boss.play('villain-slash-down');
+          boss.once('animationcomplete', () => {
+            if (!this.gameState.shield) {
+              this.loseLife();
+              this.createMagicalExplosion(boss.x, boss.y + 50, '#ff0088', 'boss_miss');
+            } else {
+              this.gameState.shield = false;
+              this.updateStatusDisplay();
+              this.showNotification("🛡️ Shield absorbed boss damage!", '#ffaa00', 1500);
+            }
+            this.retreatBoss(boss, bossLineText, false);
+          });
+        } else {
+          this.gameState.bossActive = false;
+          if (boss.active) boss.destroy();
+          if (bossLineText.active) bossLineText.destroy();
         }
       }
     });
 
     boss.setData('tween', tween);
+  }
+
+  retreatBoss(boss, wordText, generateNewWord = true) {
+    this.tweens.add({
+      targets: [boss, wordText],
+      y: -100,
+      duration: 1500,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        if (this.gameState.gameOver || !boss.active) return;
+        
+        if (generateNewWord) {
+            const newLine = this.generateBossSentence(this.gameState.level);
+            boss.setData('word', newLine);
+            wordText.setText(newLine);
+        }
+        wordText.setAlpha(1);
+        boss.setData('matched', false);
+        boss.play('villain-walk-down'); 
+        
+        const newTween = this.tweens.add({
+          targets: [boss, wordText],
+          y: 450,
+          duration: this.getBossSpeedForLevel(this.gameState.level),
+          ease: 'Linear',
+          onComplete: () => {
+             if (!boss.getData('matched') && !this.gameState.gameOver) {
+               boss.play('villain-slash-down');
+               boss.once('animationcomplete', () => {
+                 if (!this.gameState.shield) {
+                   this.loseLife();
+                   this.createMagicalExplosion(boss.x, boss.y + 50, '#ff0088', 'boss_miss');
+                 } else {
+                   this.gameState.shield = false;
+                   this.updateStatusDisplay();
+                   this.showNotification("🛡️ Shield absorbed boss damage!", '#ffaa00', 1500);
+                 }
+                 this.retreatBoss(boss, wordText, false);
+               });
+             } else {
+                 this.gameState.bossActive = false;
+                 if (boss.active) boss.destroy();
+                 if (wordText.active) wordText.destroy();
+             }
+          }
+        });
+        boss.setData('tween', newTween);
+      }
+    });
   }
 
   handleKeyInput(event) {
@@ -990,7 +1149,7 @@ spawnRegularEnemy() {
       const wordText = enemy.getData('wordText');
       if (wordText) wordText.setText(''); // Clear text immediately
 
-      if (attackType === 'cast') {
+      if (attackType === 'bow') {
         // 2. Fire Visual Projectile for cast attacks
         this.fireMagicMissile(this.player.x, this.player.y - 40, enemy.x, enemy.y, () => {
           // 3. EXPLOSION & CLEANUP (Runs when missile hits)
@@ -1005,53 +1164,14 @@ spawnRegularEnemy() {
         // Boss Hit (Non-fatal) - Instant effect
         this.createMagicalExplosion(enemy.x, enemy.y, '#ff4444', 'boss_hit');
         this.showNotification(`Boss HP: ${newHp}/${enemy.getData('maxHp')}`, '#ff0088', 1000);
-        // ... (rest of boss retreat logic remains the same) ...
-        // You might need to copy the boss retreat logic from your previous file here
-        // or just paste the function if you are replacing the whole file.
-        // For brevity, assuming you kept the logic:
+        
         enemy.setData('matched', true);
         const tween = enemy.getData('tween');
         if (tween) tween.stop();
         const wordText = enemy.getData('wordText');
         wordText.setAlpha(0);
 
-        this.tweens.add({
-            targets: [enemy, wordText],
-            y: -100,
-            duration: 1500,
-            ease: 'Back.easeOut',
-            onComplete: () => {
-                const newLine = this.generateBossSentence(this.gameState.level);
-                enemy.setData('word', newLine);
-                wordText.setText(newLine);
-                wordText.setAlpha(1);
-                enemy.setData('matched', false);
-                
-                const newTween = this.tweens.add({
-                    targets: [enemy, wordText],
-                    y: `+=${700}`,
-                    duration: enemyTypes.boss.speed,
-                    ease: 'Linear',
-                    onComplete: () => {
-                        if (!enemy.getData('matched') && !this.gameState.gameOver) {
-                            if (!this.gameState.shield) {
-                                this.loseLife();
-                                this.loseLife();
-                                this.createMagicalExplosion(enemy.x, enemy.y, '#ff0088', 'boss_miss');
-                            } else {
-                                this.gameState.shield = false;
-                                this.updateStatusDisplay();
-                                this.showNotification("🛡️ Shield absorbed boss damage!", '#ffaa00', 1500);
-                            }
-                        }
-                        this.gameState.bossActive = false;
-                        enemy.destroy();
-                        wordText.destroy();
-                    }
-                });
-                enemy.setData('tween', newTween);
-            }
-        });
+        this.retreatBoss(enemy, wordText, true);
     } else if (!isBoss) {
       // Regular Hit (Instant)
       this.createMagicalExplosion(enemy.x, enemy.y, '#ffaa00', 'hit');
@@ -1068,8 +1188,9 @@ spawnRegularEnemy() {
       const duration = (dist / speed) * 1000;
 
       // Create missile sprite
-      const missile = this.add.image(fromX, fromY, 'projectile');
-      missile.setTint(0xff0088); 
+      const missile = this.add.image(fromX, fromY, 'arrow');
+      missile.setRotation(Phaser.Math.Angle.Between(fromX, fromY, toX, toY));
+      missile.setTint(0xffaa00); 
       this.projectileGroup.add(missile);
 
       // Tween it to target
@@ -1177,7 +1298,6 @@ spawnRegularEnemy() {
   levelUp(newLevel) {
     this.gameState.level = newLevel;
     this.levelText.setText(`Level: ${this.gameState.level}`);
-    this.backgroundManager.updateBackground(newLevel);
 
     // Increase difficulty more gradually
     this.gameState.enemySpeed = Math.max(2500, 4200 - (this.gameState.level * 300));
@@ -1186,16 +1306,53 @@ spawnRegularEnemy() {
     // Increase ally spawn chance slightly each level
     this.gameState.allySpawnChance = Math.min(0.25, 0.15 + (this.gameState.level * 0.02));
 
-    // Update spawn timer
-    this.enemyTimer.delay = this.gameState.spawnRate;
+    // Pause enemy spawning during transition
+    if (this.enemyTimer) this.enemyTimer.paused = true;
+    if (this.allyTimer) this.allyTimer.paused = true;
 
-    // Show level up with magical effect
+    // Stop active tweens before clearing to prevent them from completing and dealing damage
+    this.enemyGroup.getChildren().forEach(enemy => {
+      const tween = enemy.getData('tween');
+      if (tween) tween.stop();
+      enemy.setData('matched', true);
+    });
+
+    // Clear remaining enemies on screen
+    this.enemyGroup.clear(true, true);
+    this.allyGroup.clear(true, true);
+
+    // Hide range circle during transition
+    if (this.rangeCircle) this.rangeCircle.setVisible(false);
+
     this.showNotification(`🌟 Level ${this.gameState.level}! 🌟`, '#ffaa00', 2000);
-    this.gameState.healerSpawnedThisLevel = false;
 
-    // Reset boss progress for new level
-    this.gameState.enemiesKilled = 0;
-    this.updateBossProgress();
+    // Player walks off-screen, background changes, player walks back in
+    this.player.playLevelTransition(
+      // onExitComplete: player is off-screen, swap the background
+      () => {
+        this.backgroundManager.updateBackground(newLevel);
+      },
+      // onEntryComplete: player is back in position, resume gameplay
+      () => {
+        // Redraw range circle at player position
+        if (this.rangeCircle) {
+          this.rangeCircle.setVisible(true);
+        }
+
+        // Update spawn timer and resume
+        if (this.enemyTimer) {
+          this.enemyTimer.delay = this.gameState.spawnRate;
+          this.enemyTimer.paused = false;
+        }
+        if (this.allyTimer) this.allyTimer.paused = false;
+
+        this.gameState.healerSpawnedThisLevel = false;
+        this.gameState.enemiesKilled = 0;
+        this.updateBossProgress();
+
+        this.showNotification("TYPE TO SURVIVE!", '#ff0000', 2000);
+      }
+    );
   }
 
   loseLife() {
@@ -1235,6 +1392,12 @@ spawnRegularEnemy() {
     // Clear remaining enemies and allies
     this.enemyGroup.clear(true, true);
     this.allyGroup.clear(true, true);
+
+    // Hide player, range circle, and input UI so they don't show through the overlay
+    if (this.player) this.player.setVisible(false);
+    if (this.rangeCircle) this.rangeCircle.setVisible(false);
+    if (this.inputDisplay) this.inputDisplay.setVisible(false);
+    if (this.inputHint) this.inputHint.setVisible(false);
 
     // Trigger game session save if callback exists
     if (this.onGameComplete) {

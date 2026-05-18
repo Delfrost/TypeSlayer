@@ -1,5 +1,11 @@
 {
   "templates": {
+    "beginner": [
+      ["{verb}", "{noun}"],
+      ["use", "{noun}"],
+      ["{verb}", "the", "{noun}"],
+      ["cast", "{noun}"]
+    ],
     "simple": [
       ["The", "{noun}", "{verb}", "you"],
       ["My", "{noun}", "{verb}", "your", "{noun}"],

@@ -188,7 +188,7 @@ function App() {
         zIndex: 1000
       }}>
         <div style={{
-          fontFamily: 'Courier New, monospace',
+          fontFamily: "'MedievalSharp', cursive",
           fontSize: '1.6rem',
           fontWeight: 800,
           background: 'linear-gradient(135deg, #00ff88 0%, #00d4ff 50%, #ff6b9d 100%)',
@@ -425,6 +425,7 @@ function App() {
         }}>
           <div>
             <h1 style={{ 
+              fontFamily: "'MedievalSharp', cursive",
               fontSize: '4rem', 
               marginBottom: '1rem', 
               background: 'linear-gradient(45deg, #00ff88, #00aaff)',
@@ -477,7 +478,7 @@ function App() {
               </>
             ) : (
               <>
-                <p style={{ fontSize: '1.4rem', marginBottom: '2rem', color: '#b2bec3' }}>
+                <p style={{ fontFamily: "'MedievalSharp', cursive", fontSize: '1.4rem', marginBottom: '2rem', color: '#b2bec3' }}>
                   Master the Art of Speed Typing
                 </p>
                 
@@ -514,7 +515,7 @@ function App() {
                     fontSize: '1.2rem',
                     borderRadius: '12px',
                     cursor: 'pointer',
-                    fontWeight: '600',
+                    fontFamily: "'MedievalSharp', cursive",
                     boxShadow: '0 4px 20px rgba(0, 255, 136, 0.3)'
                   }}
                 >

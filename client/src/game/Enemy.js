@@ -1,8 +1,10 @@
+import Phaser from "phaser";
+
 /**
- * Represents a single enemy in the game. It handles its own appearance,
- * data, and movement along a predefined path.
+ * Represents a single enemy in the game. Uses the villain spritesheet
+ * instead of emojis for proper animated enemies.
  */
-export class Enemy extends Phaser.GameObjects.Text {
+export class Enemy extends Phaser.GameObjects.Sprite {
   /**
    * @param {Phaser.Scene} scene The scene this enemy belongs to.
    * @param {Phaser.Curves.Path} path The path this enemy must follow.
@@ -13,18 +15,16 @@ export class Enemy extends Phaser.GameObjects.Text {
     // Get the starting coordinates from the path object
     const startPoint = path.getStartPoint();
 
-    // Call the constructor of the parent class (Phaser.GameObjects.Text)
-    // This creates the emoji-like sprite for the enemy
-    super(scene, startPoint.x, startPoint.y, enemyType.sprite, {
-      fontSize: `${32 * enemyType.scale}px`
-    });
+    // Call the Sprite constructor using the villain spritesheet
+    super(scene, startPoint.x, startPoint.y, 'villain');
     this.setOrigin(0.5);
+    this.setScale(enemyType.scale || 1.0);
 
     this.scene = scene;
     this.path = path;
     this.enemyType = enemyType;
     this.word = word;
-    this.wordText = null; // This will hold the text object displayed above the enemy
+    this.wordText = null;
 
     // --- Set up data for the main game logic ---
     this.setData({
@@ -34,17 +34,19 @@ export class Enemy extends Phaser.GameObjects.Text {
       type: this.enemyType.name,
       points: this.enemyType.points,
       matched: false,
-      isBoss: false, // This class is for regular enemies
+      isBoss: false,
       isAlly: false,
-      // We will set wordText and tween later
     });
 
     // Create the text object that displays the word to be typed
     this.createWordText();
 
-    // Finally, add this completed enemy object to the scene and its enemy group
+    // Add to scene and enemy group
     scene.add.existing(this);
     scene.enemyGroup.add(this);
+
+    // Play walk-down animation (enemy walks toward the player)
+    this.play('villain-walk-down');
   }
 
   /**
@@ -70,24 +72,19 @@ export class Enemy extends Phaser.GameObjects.Text {
    * @param {function} onCompleteCallback The function to call when the enemy reaches the end.
    */
   startFollow(onCompleteCallback) {
-    // A tween is an animation of a value over time. Here, we animate a value 't'
-    // from 0 (the start of the path) to 1 (the end of the path).
     const tween = this.scene.tweens.add({
       targets: { t: 0 },
       t: 1,
       duration: this.enemyType.speed,
       ease: 'Linear',
       onUpdate: (tween) => {
-        // For each step of the animation, get the (x, y) position on the path
         const position = this.path.getPoint(tween.targets[0].t);
-        // Update the position of the enemy sprite and its word text
         this.setPosition(position.x, position.y);
         this.wordText.setPosition(position.x, position.y - 40);
       },
       onComplete: () => {
-        // When the path is finished, call the provided callback function
-        onCompleteCallback(this); // We pass `this` (the enemy instance) to the callback
-        this.destroy(); // The enemy destroys itself after the callback
+        onCompleteCallback(this);
+        this.destroy();
       }
     });
 
