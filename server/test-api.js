@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:5001/api';
+const BASE_URL = process.env.API_URL || 'http://localhost:5000/api';
 let authToken = '';
 let userId = '';
 
@@ -88,8 +88,9 @@ async function testAPI() {
     const history = await axios.get(`${BASE_URL}/games/history?limit=5`, {
       headers: { Authorization: `Bearer ${authToken}` }
     });
-    console.log('✅ Game History:', `${history.data.sessions.length} sessions found`);
-    console.log(`📈 Best session: ${Math.max(...history.data.sessions.map(s => s.score))} points`);
+    const historyGames = history.data.games || history.data.sessions || [];
+    console.log('✅ Game History:', `${historyGames.length} sessions found`);
+    console.log(`📈 Best session: ${historyGames.length ? Math.max(...historyGames.map(s => s.score)) : 0} points`);
     console.log();
 
     // Test 7: Get User Stats

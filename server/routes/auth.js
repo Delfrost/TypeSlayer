@@ -1,7 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const { generateToken, protect } = require('../middleware/auth');
-const { validateRegistration, validateLogin } = require('../middleware/validation');
+const { validateRegistration, validateLogin, validateProfileUpdate } = require('../middleware/validation');
 const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
@@ -92,7 +92,7 @@ router.get('/profile', protect, async (req, res) => {
   }
 });
 
-router.put('/profile', protect, async (req, res) => {
+router.put('/profile', protect, validateProfileUpdate, async (req, res) => {
   try {
     const { username } = req.body;
     

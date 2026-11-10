@@ -3,6 +3,7 @@ import { levelData } from './level-data.js';
 import { BackgroundManager } from './BackgroundManager.js';
 import { Enemy } from './Enemy.js';
 import { Player } from './Player.js'; 
+import { FxManager } from './FxManager.js'; 
 
 // Friendly ally words that give bonuses
 const allyWords = {
@@ -311,6 +312,7 @@ class PlayScene extends Phaser.Scene {
     this.load.json('wordlist', '/words.json');
     this.load.json('sentenceParts', '/sentence_parts.json');
     BackgroundManager.preload(this);
+    FxManager.preload(this);
   
     // Create magical particle texture
     this.add.graphics()
@@ -432,6 +434,9 @@ class PlayScene extends Phaser.Scene {
     // --- MANAGERS ---
     this.backgroundManager = new BackgroundManager(this);
     this.backgroundManager.create();
+
+    this.fxManager = new FxManager(this);
+    this.fxManager.create();
 
     this.enemyGroup = this.add.group();
     this.allyGroup = this.add.group();
@@ -957,13 +962,20 @@ spawnRegularEnemy() {
 
       if (!allyHelped) {
         // Increase combo for enemy defeats
+        const prevMultiplier = this.gameState.comboMultiplier;
         this.gameState.comboCount++;
         this.gameState.comboMultiplier = Math.min(5, Math.floor(this.gameState.comboCount / 3) + 1);
         this.gameState.maxCombo = Math.max(this.gameState.maxCombo, this.gameState.comboCount);
+        if (this.gameState.comboMultiplier > prevMultiplier) {
+          this.fxManager.playCombo(650, 95);
+        }
         this.updateComboDisplay();
       }
 
       this.updateWPM();
+
+      // Successful typing effect: magical sparkle burst near input display
+      this.fxManager.playCollectBurst(this.inputDisplay.x, this.inputDisplay.y - 25);
 
       // Flash input with success color
       this.inputDisplay.setStyle({ backgroundColor: '#00aa44' });
@@ -1009,7 +1021,11 @@ spawnRegularEnemy() {
         break;
 
       case 'combo_multiplier':
+        const prevMult = this.gameState.comboMultiplier;
         this.gameState.comboMultiplier = Math.min(5, this.gameState.comboMultiplier + 2);
+        if (this.gameState.comboMultiplier > prevMult) {
+          this.fxManager.playCombo(650, 95);
+        }
         break;
 
       case 'time_slow':
@@ -1023,6 +1039,7 @@ spawnRegularEnemy() {
 
     // Show benefit message
     this.showNotification(message, '#00ff88', 2000);
+    this.fxManager.playCollectBurst(ally.x, ally.y);
     this.createMagicalExplosion(ally.x, ally.y, '#00ff88', 'ally_help');
 
     // Destroy ally with magical effect
@@ -1117,10 +1134,28 @@ spawnRegularEnemy() {
     if (isBoss) {
       this.gameState.bossActive = false;
       this.gameState.enemiesKilled = 0;
+      this.fxManager.playBossDeath(enemy.x, enemy.y);
       this.createMagicalExplosion(enemy.x, enemy.y, '#ffaa00', 'boss_death');
       this.showNotification("🎉 BOSS DEFEATED! 🎉", '#ffaa00', 1500);
+      
+      // Level up after boss defeat
+      if (this.gameState.level < 5) {
+        this.time.delayedCall(2000, () => {
+          if (!this.gameState.gameOver) {
+            this.levelUp(this.gameState.level + 1);
+          }
+        });
+      } else {
+        this.showNotification("🏆 YOU SAVED DELFROST! 🏆", '#00ff88', 3000);
+        this.time.delayedCall(2500, () => {
+          if (!this.gameState.gameOver) {
+            this.gameOver(true);
+          }
+        });
+      }
     } else {
       this.gameState.enemiesKilled++;
+      this.fxManager.playEnemyDeath(enemy.x, enemy.y);
       this.createMagicalExplosion(enemy.x, enemy.y, '#00ff88', 'enemy_death');
     }
 
@@ -1156,12 +1191,18 @@ spawnRegularEnemy() {
           this.handleEnemyDefeat(enemy);
         });
       } else { // 'slash'
-        // 2. Instant explosion for slash attacks
+        // 2. Play sword slash effect, hit spark, and defeat enemy
+        this.fxManager.playSwordSlash(enemy.x, enemy.y);
+        this.fxManager.playHitSpark(enemy.x, enemy.y);
         this.handleEnemyDefeat(enemy);
       }
 
     } else if (isBoss) {
         // Boss Hit (Non-fatal) - Instant effect
+        if (attackType === 'slash') {
+          this.fxManager.playSwordSlash(enemy.x, enemy.y);
+        }
+        this.fxManager.playBossHit(enemy.x, enemy.y);
         this.createMagicalExplosion(enemy.x, enemy.y, '#ff4444', 'boss_hit');
         this.showNotification(`Boss HP: ${newHp}/${enemy.getData('maxHp')}`, '#ff0088', 1000);
         
@@ -1174,6 +1215,10 @@ spawnRegularEnemy() {
         this.retreatBoss(enemy, wordText, true);
     } else if (!isBoss) {
       // Regular Hit (Instant)
+      if (attackType === 'slash') {
+        this.fxManager.playSwordSlash(enemy.x, enemy.y);
+      }
+      this.fxManager.playHitSpark(enemy.x, enemy.y);
       this.createMagicalExplosion(enemy.x, enemy.y, '#ffaa00', 'hit');
     }
     
@@ -1202,6 +1247,7 @@ spawnRegularEnemy() {
           ease: 'Linear',
           onComplete: () => {
               missile.destroy();
+              this.fxManager.playHitSpark(toX, toY);
               if (onComplete) onComplete();
           }
       });
@@ -1260,20 +1306,15 @@ spawnRegularEnemy() {
   updateScore(points) {
     this.gameState.score += points;
     this.scoreText.setText(`Score: ${this.gameState.score}`);
-
-    // Check for level up
-    const newLevel = Math.floor(this.gameState.score / 600) + 1; // Slower level progression
-    if (newLevel > this.gameState.level && newLevel <= 5) {
-      this.levelUp(newLevel);
-    }
+    
+    // Note: Level progression is now handled by defeating bosses in handleEnemyDefeat
   }
 
   updateWPM() {
     const timeElapsed = (Date.now() - this.gameState.startTime) / 60000; // minutes
     if (timeElapsed < 0.0167) return; // Wait at least 1 second before calculating
     
-    // Standard WPM calculation: (characters typed / 5) / minutes
-    const grossWPM = Math.round((this.gameState.totalCharactersTyped / 5) / timeElapsed) || 0;
+    // Standard WPM calculation: (net characters typed / 5) / minutes
     const netWPM = Math.round(((this.gameState.totalCharactersTyped - this.gameState.errorCharacters) / 5) / timeElapsed) || 0;
     
     // Use net WPM for display (more accurate for typing tests)
@@ -1378,7 +1419,7 @@ spawnRegularEnemy() {
     }
   }
 
-  gameOver() {
+  gameOver(isVictory = false) {
     this.gameState.gameOver = true;
 
     // Stop spawning
@@ -1401,14 +1442,14 @@ spawnRegularEnemy() {
 
     // Trigger game session save if callback exists
     if (this.onGameComplete) {
-      const gameSessionData = this.getGameSessionData();
+      const gameSessionData = this.getGameSessionData(isVictory);
       this.onGameComplete(gameSessionData);
     }
 
-    this.showGameOverScreen();
+    this.showGameOverScreen(isVictory);
   }
 
-  getGameSessionData() {
+  getGameSessionData(isVictory = false) {
     const timeElapsed = (Date.now() - this.gameState.startTime) / 1000;
     const timeElapsedMinutes = timeElapsed / 60;
     
@@ -1423,27 +1464,27 @@ spawnRegularEnemy() {
       levelReached: this.gameState.level,
       wpm: Math.max(0, finalWPM),
       accuracy: Math.max(0, charAccuracy),
-      wordsTyped: this.gameState.totalCharactersTyped,
+      wordsTyped: this.gameState.wordsTyped || this.gameState.correctWords,
       durationSeconds: Math.round(timeElapsed),
       gameMode: 'normal',
       gameStats: {
         enemiesDefeated: this.gameState.correctWords,
-        bossesDefeated: Math.floor(this.gameState.level - 1), // Approximate based on level
+        bossesDefeated: isVictory ? 5 : Math.floor(this.gameState.level - 1),
         alliesHelped: this.allyGroup.children.entries.filter(ally => ally.getData('matched')).length || 0,
-        livesLost: 3 - this.gameState.lives
+        livesLost: Math.max(0, 3 - this.gameState.lives)
       }
     };
   }
 
-  showGameOverScreen() {
+  showGameOverScreen(isVictory = false) {
     // Dramatic overlay
     this.add.rectangle(400, 300, 800, 600, 0x000000, 0.85);
 
-    // Game over title
-    this.add.text(400, 120, 'QUEST FAILED', {
-      fontSize: '64px',
+    // Game over / victory title
+    this.add.text(400, 120, isVictory ? 'DELFROST SAVED!' : 'QUEST FAILED', {
+      fontSize: isVictory ? '52px' : '64px',
       fontFamily: 'Courier New, monospace',
-      fill: '#ff4444',
+      fill: isVictory ? '#00ff88' : '#ff4444',
       stroke: '#000033',
       strokeThickness: 6
     }).setOrigin(0.5);
@@ -1456,9 +1497,7 @@ spawnRegularEnemy() {
     const finalWPM = timeElapsedMinutes > 0 ? 
       Math.round(((this.gameState.totalCharactersTyped - this.gameState.errorCharacters) / 5) / timeElapsedMinutes) : 0;
     
-    // Calculate both word accuracy and character accuracy
-    const wordAccuracy = this.gameState.wordsTyped > 0 ?
-      Math.round((this.gameState.correctWords / this.gameState.wordsTyped) * 100) : 0;
+    // Calculate character accuracy
     const charAccuracy = this.gameState.totalCharactersTyped > 0 ?
       Math.round((this.gameState.correctCharacters / this.gameState.totalCharactersTyped) * 100) : 0;
 
@@ -1524,6 +1563,7 @@ const config = {
   height: 600,
   parent: 'game-container',
   backgroundColor: '#1a0a2e',
+  pixelArt: true,
   physics: {
     default: 'arcade',
     arcade: {

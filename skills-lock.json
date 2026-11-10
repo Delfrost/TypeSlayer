@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "pixelfx": {
+      "source": "patch-gg/pixelfx",
+      "sourceType": "github",
+      "skillPath": "skills/pixelfx/SKILL.md",
+      "computedHash": "580f63fe35e7d4436b9c06a73e9a0b01d236612fb5d80e8fcce3ad67df2cc391"
+    }
+  }
+}

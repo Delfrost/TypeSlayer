@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from './context/AuthContext.jsx';
 import Game from './components/Game.jsx';
 //import TestAnimation from './components/TestAnimation.jsx';
@@ -134,11 +134,11 @@ function App() {
       const games = rawData.map(item => ({
         _id: item._id,
         score: item.score,
-        level: item.levelReached,
+        level: item.level !== undefined ? item.level : item.levelReached,
         wpm: item.wpm,
         accuracy: Math.round(item.accuracy),
         wordsTyped: item.wordsTyped,
-        playedAt: item.createdAt,
+        playedAt: item.playedAt || item.createdAt,
         gameMode: item.gameMode || 'normal',
         gameStats: item.gameStats
       }));
@@ -987,7 +987,7 @@ function App() {
             
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ color: '#da70d6', marginBottom: '1rem', fontSize: '1.6rem' }}>
-                👤 {user?.username}'s Profile
+                👤 {user?.username}&apos;s Profile
               </h2>
               
               {/* User Stats Overview */}

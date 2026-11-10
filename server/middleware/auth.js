@@ -17,7 +17,8 @@ const protect = async (req, res, next) => {
       
       next();
     } catch (error) {
-      console.error('Token verification error:', error);
+      // Normal expiration logs are suppressed to prevent terminal clutter
+      // console.error('Token verification error:', error);
       return res.status(401).json({ error: 'Not authorized, token failed' });
     }
   }
@@ -29,18 +30,11 @@ const protect = async (req, res, next) => {
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '15m'
-  });
-};
-
-const generateRefreshToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
+    expiresIn: process.env.JWT_EXPIRE || '7d'
   });
 };
 
 module.exports = {
   protect,
-  generateToken,
-  generateRefreshToken
+  generateToken
 };

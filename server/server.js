@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const fs = require('fs');
 
 const connectDB = require('./config/database');
 const { generalLimiter } = require('./middleware/rateLimiter');
@@ -19,8 +20,14 @@ connectDB();
 
 // Security middleware
 app.use(helmet());
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:3001',
+  ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : [])
+];
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:3001'],
+  origin: allowedOrigins,
   credentials: true
 }));
 
@@ -45,13 +52,19 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve static files (Phaser game) from client/public
-app.use(express.static(path.join(__dirname, '../client/public')));
+// Serve static files from client/dist if built, otherwise client/public
+const clientDist = path.join(__dirname, '../client/dist');
+const clientPublic = path.join(__dirname, '../client/public');
+const staticDir = fs.existsSync(clientDist) ? clientDist : clientPublic;
+app.use(express.static(staticDir));
 
 // Catch all handler for client-side routing
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '../client/public/index.html'));
+    const indexPath = fs.existsSync(path.join(clientDist, 'index.html'))
+      ? path.join(clientDist, 'index.html')
+      : path.join(clientPublic, 'index.html');
+    res.sendFile(indexPath);
   } else {
     res.status(404).json({ error: 'API endpoint not found' });
   }

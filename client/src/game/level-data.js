@@ -1,5 +1,6 @@
 // This file stores all the data for our game levels,
 // including which background to use and the paths enemies can follow.
+import Phaser from 'phaser';
 
 export const levelData = {
   // Level 1: Based on bg2.jpg (image_2fe3ee.jpg)

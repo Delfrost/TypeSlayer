@@ -1,5 +1,5 @@
 import { Player } from './Player.js';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('Player', () => {
   let player;
@@ -18,8 +18,8 @@ describe('Player', () => {
       }
     };
     
-    // Mock the player object
-    player = new Player(scene, 0, 0);
+    // Mock the player object at default battle position (400, 500)
+    player = new Player(scene, 400, 500);
   });
 
   describe('attack method should select correct attack based on distance', () => {
@@ -29,10 +29,10 @@ describe('Player', () => {
       expect(closeResult).toBe('slash');
     });
 
-    it('should return cast when enemy is beyond slashRadius', () => {
-      // This would test that far enemies trigger cast/bow
-      const farResult = player.attack(700, 100); // if enemy is at (700, 100) which is beyond 250px radius
-      expect(farResult).toBe('cast');
+    it('should return bow when enemy is beyond slashRadius', () => {
+      // This tests that far enemies trigger bow
+      const farResult = player.attack(700, 100);
+      expect(farResult).toBe('bow');
     });
   });
 });

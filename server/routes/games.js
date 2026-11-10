@@ -32,8 +32,8 @@ router.post('/session', protect, validateGameSession, async (req, res) => {
 
 router.get('/history', protect, async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 20));
     const skip = (page - 1) * limit;
 
     const sessions = await GameSession.find({ user: req.user.id })

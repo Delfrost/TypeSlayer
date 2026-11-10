@@ -1,0 +1,239 @@
+{
+  "client/.vite/deps/_metadata.json": {
+    "mtime": 1740163365.649098,
+    "seen": 1794072825.2623713,
+    "ast_hash": "6c973b0026cc54ce3484312a80f54718",
+    "semantic_hash": "6c973b0026cc54ce3484312a80f54718",
+    "ast_empty": true
+  },
+  "client/.vite/deps/package.json": {
+    "mtime": 1740163365.649098,
+    "seen": 1794072825.2623801,
+    "ast_hash": "2324363c71f28a5b7e946a38dc2d9293",
+    "semantic_hash": "2324363c71f28a5b7e946a38dc2d9293"
+  },
+  "client/eslint.config.js": {
+    "mtime": 1740163365.6511004,
+    "seen": 1794072825.2628353,
+    "ast_hash": "f67d8fbc78c9581d9962cd4955b07768",
+    "semantic_hash": "f67d8fbc78c9581d9962cd4955b07768"
+  },
+  "client/package.json": {
+    "mtime": 1794071654.9923234,
+    "seen": 1794072825.2630954,
+    "ast_hash": "b816657d1ddfc6f9721d2b347692656b",
+    "semantic_hash": "b816657d1ddfc6f9721d2b347692656b"
+  },
+  "client/public/sentence_parts.json": {
+    "mtime": 1794071669.6683378,
+    "seen": 1794072825.2633512,
+    "ast_hash": "9d603d2c1a3c7d211fa4bcb00f62085c",
+    "semantic_hash": "9d603d2c1a3c7d211fa4bcb00f62085c",
+    "ast_empty": true
+  },
+  "client/public/words.json": {
+    "mtime": 1756318348.122311,
+    "seen": 1794072825.263356,
+    "ast_hash": "e42044fa4f6ae65e052050cd6dd3ed65",
+    "semantic_hash": "e42044fa4f6ae65e052050cd6dd3ed65",
+    "ast_empty": true
+  },
+  "client/src/App.jsx": {
+    "mtime": 1794072176.2900171,
+    "seen": 1794072825.2633598,
+    "ast_hash": "5bcdf8a481568df10bfafb7cd4a1c469",
+    "semantic_hash": "5bcdf8a481568df10bfafb7cd4a1c469"
+  },
+  "client/src/components/AuthRequired/AuthRequired.jsx": {
+    "mtime": 1756305463.2848744,
+    "seen": 1794072825.2636101,
+    "ast_hash": "7ac0a0cf299c215ba0b0b25846cc8688",
+    "semantic_hash": "7ac0a0cf299c215ba0b0b25846cc8688"
+  },
+  "client/src/components/Auth/LoginForm.jsx": {
+    "mtime": 1756305463.2828748,
+    "seen": 1794072825.2638953,
+    "ast_hash": "5d44599bc2aa78983bb0c62459bc9ce2",
+    "semantic_hash": "5d44599bc2aa78983bb0c62459bc9ce2"
+  },
+  "client/src/components/Auth/RegisterForm.jsx": {
+    "mtime": 1756305463.283876,
+    "seen": 1794072825.2641785,
+    "ast_hash": "de3a65189e134256cd3add48854faf62",
+    "semantic_hash": "de3a65189e134256cd3add48854faf62"
+  },
+  "client/src/components/Game.jsx": {
+    "mtime": 1764356738.5900774,
+    "seen": 1794072825.264417,
+    "ast_hash": "c2c6881f37e50f97a99a44109c652648",
+    "semantic_hash": "c2c6881f37e50f97a99a44109c652648"
+  },
+  "client/src/components/Leaderboard/Leaderboard.jsx": {
+    "mtime": 1756305463.286876,
+    "seen": 1794072825.2646453,
+    "ast_hash": "031543779ccfdf37337d5aba269dacf9",
+    "semantic_hash": "031543779ccfdf37337d5aba269dacf9"
+  },
+  "client/src/components/Navbar/Navbar.jsx": {
+    "mtime": 1756305463.2878735,
+    "seen": 1794072825.2648804,
+    "ast_hash": "0e3d76faaf403eb370853e3b9f6c8546",
+    "semantic_hash": "0e3d76faaf403eb370853e3b9f6c8546"
+  },
+  "client/src/components/TestAnimation.jsx": {
+    "mtime": 1764319975.1274033,
+    "seen": 1794072825.2651303,
+    "ast_hash": "aa4d805e0a7f7dc5f982e78eb63528a4",
+    "semantic_hash": "aa4d805e0a7f7dc5f982e78eb63528a4"
+  },
+  "client/src/context/AuthContext.jsx": {
+    "mtime": 1756307398.9085684,
+    "seen": 1794072825.2653775,
+    "ast_hash": "51f7d84d3cb74432acae7e00c123c7cb",
+    "semantic_hash": "51f7d84d3cb74432acae7e00c123c7cb"
+  },
+  "client/src/game/BackgroundManager.js": {
+    "mtime": 1756320195.6972742,
+    "seen": 1794072825.265604,
+    "ast_hash": "174a23e2fcc02e178c86d7d99b2997b6",
+    "semantic_hash": "174a23e2fcc02e178c86d7d99b2997b6"
+  },
+  "client/src/game/Enemy.js": {
+    "mtime": 1778140685.6510613,
+    "seen": 1794072825.26583,
+    "ast_hash": "5d38dfdac8dca7bc271ef51895e2f03f",
+    "semantic_hash": "5d38dfdac8dca7bc271ef51895e2f03f"
+  },
+  "client/src/game/Player.js": {
+    "mtime": 1778142352.5750093,
+    "seen": 1794072825.2660537,
+    "ast_hash": "91dd686bfb503a43e9bd5a2f38ac3af8",
+    "semantic_hash": "91dd686bfb503a43e9bd5a2f38ac3af8"
+  },
+  "client/src/game/Player.test.js": {
+    "mtime": 1794072181.3775945,
+    "seen": 1794072825.266286,
+    "ast_hash": "a511e2522fbdb411860392f9828a3937",
+    "semantic_hash": "a511e2522fbdb411860392f9828a3937"
+  },
+  "client/src/game/TestScene.js": {
+    "mtime": 1764321977.6328723,
+    "seen": 1794072825.266512,
+    "ast_hash": "96d2b4f5f6fd9cea7b4d4f45651a8670",
+    "semantic_hash": "96d2b4f5f6fd9cea7b4d4f45651a8670"
+  },
+  "client/src/game/level-data.js": {
+    "mtime": 1794072111.8461134,
+    "seen": 1794072825.2667346,
+    "ast_hash": "840bdb0ebad42dc3dec50803e189d056",
+    "semantic_hash": "840bdb0ebad42dc3dec50803e189d056"
+  },
+  "client/src/game/main.js": {
+    "mtime": 1794072202.3534856,
+    "seen": 1794072825.2669616,
+    "ast_hash": "b81abfdead8ba0671397697076782914",
+    "semantic_hash": "b81abfdead8ba0671397697076782914"
+  },
+  "client/src/main.jsx": {
+    "mtime": 1756305463.289874,
+    "seen": 1794072825.2671864,
+    "ast_hash": "a4042669c1f08f268746268fbfb7ca04",
+    "semantic_hash": "a4042669c1f08f268746268fbfb7ca04"
+  },
+  "client/src/setupTests.js": {
+    "mtime": 1794072206.7409923,
+    "seen": 1794072825.2674258,
+    "ast_hash": "e912c0ee0da5668f2b2223ec3d27aade",
+    "semantic_hash": "e912c0ee0da5668f2b2223ec3d27aade"
+  },
+  "client/vite.config.js": {
+    "mtime": 1756305463.2908735,
+    "seen": 1794072825.2676477,
+    "ast_hash": "311c4ad42790a63cbd6e2cf7382fa88d",
+    "semantic_hash": "311c4ad42790a63cbd6e2cf7382fa88d"
+  },
+  "client/vitest.config.js": {
+    "mtime": 1778102568.8076267,
+    "seen": 1794072825.2678661,
+    "ast_hash": "57f9fe95f9f42dc4a90d598b5ed5a7f8",
+    "semantic_hash": "57f9fe95f9f42dc4a90d598b5ed5a7f8"
+  },
+  "server/config/database.js": {
+    "mtime": 1756305463.2918737,
+    "seen": 1794072825.268088,
+    "ast_hash": "2ad06d0b69d0ff7789be999ffb23ca05",
+    "semantic_hash": "2ad06d0b69d0ff7789be999ffb23ca05"
+  },
+  "server/middleware/auth.js": {
+    "mtime": 1794071796.996937,
+    "seen": 1794072825.2683167,
+    "ast_hash": "74b8b7a86c585e2352de26f2f3ca9761",
+    "semantic_hash": "74b8b7a86c585e2352de26f2f3ca9761"
+  },
+  "server/middleware/errorHandler.js": {
+    "mtime": 1756305463.2928758,
+    "seen": 1794072825.268542,
+    "ast_hash": "2b7bdf6376deb466faca6f36ba6076f9",
+    "semantic_hash": "2b7bdf6376deb466faca6f36ba6076f9"
+  },
+  "server/middleware/rateLimiter.js": {
+    "mtime": 1756305463.2928758,
+    "seen": 1794072825.268763,
+    "ast_hash": "59513070dcf4abb866a62ef15aa51d6d",
+    "semantic_hash": "59513070dcf4abb866a62ef15aa51d6d"
+  },
+  "server/middleware/validation.js": {
+    "mtime": 1794071809.2263584,
+    "seen": 1794072825.2689908,
+    "ast_hash": "d8ae4eb3295cdb8718ca27c675955cb2",
+    "semantic_hash": "d8ae4eb3295cdb8718ca27c675955cb2"
+  },
+  "server/models/GameSession.js": {
+    "mtime": 1756305463.2938743,
+    "seen": 1794072825.2692254,
+    "ast_hash": "eb570bb3d37a3931ebba545755feaef7",
+    "semantic_hash": "eb570bb3d37a3931ebba545755feaef7"
+  },
+  "server/models/User.js": {
+    "mtime": 1756305463.2948737,
+    "seen": 1794072825.269488,
+    "ast_hash": "9cb72de0fca92422187bdd349317b632",
+    "semantic_hash": "9cb72de0fca92422187bdd349317b632"
+  },
+  "server/package.json": {
+    "mtime": 1794071890.4350233,
+    "seen": 1794072825.2697241,
+    "ast_hash": "f1b6ede713ec6b127bfc808f29eaf413",
+    "semantic_hash": "f1b6ede713ec6b127bfc808f29eaf413"
+  },
+  "server/routes/auth.js": {
+    "mtime": 1794071826.3183806,
+    "seen": 1794072825.2699537,
+    "ast_hash": "02bcba8facdc8b46490e16a941919c40",
+    "semantic_hash": "02bcba8facdc8b46490e16a941919c40"
+  },
+  "server/routes/games.js": {
+    "mtime": 1794071835.4866009,
+    "seen": 1794072825.270197,
+    "ast_hash": "467817459f39e3d7c2c1e29f849b9fb0",
+    "semantic_hash": "467817459f39e3d7c2c1e29f849b9fb0"
+  },
+  "server/routes/leaderboard.js": {
+    "mtime": 1794071860.588264,
+    "seen": 1794072825.2704172,
+    "ast_hash": "9d46dab40fd4a5dcdef027a8e1719741",
+    "semantic_hash": "9d46dab40fd4a5dcdef027a8e1719741"
+  },
+  "server/server.js": {
+    "mtime": 1794071786.0851717,
+    "seen": 1794072825.2706432,
+    "ast_hash": "19d039435bee2f173c67e2e028be31ba",
+    "semantic_hash": "19d039435bee2f173c67e2e028be31ba"
+  },
+  "server/test-api.js": {
+    "mtime": 1794071879.6751063,
+    "seen": 1794072825.2708635,
+    "ast_hash": "8141d1a2ec54e9e062b69587cdbebb63",
+    "semantic_hash": "8141d1a2ec54e9e062b69587cdbebb63"
+  }
+}

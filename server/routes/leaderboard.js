@@ -125,7 +125,6 @@ router.get('/top-scores', async (req, res) => {
       {
         $project: {
           _id: 0,
-          rank: { $add: [{ $indexOfArray: [[], null] }, 1] },
           username: '$user.username',
           score: '$bestScore',
           level: '$bestLevel',
@@ -267,42 +266,37 @@ router.get('/top-levels', async (req, res) => {
 
 router.get('/user-rank/:userId', async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const { userId } = req.params;
     const category = req.query.category || 'score'; // score, wpm, level
 
-    let sortField;
-    let groupField;
-    
-    switch (category) {
-      case 'wpm':
-        sortField = { bestWPM: -1 };
-        groupField = { bestWPM: { $max: '$wpm' } };
-        break;
-      case 'level':
-        sortField = { bestLevel: -1, bestScore: -1 };
-        groupField = { bestLevel: { $max: '$levelReached' }, bestScore: { $max: '$score' } };
-        break;
-      default:
-        sortField = { bestScore: -1 };
-        groupField = { bestScore: { $max: '$score' } };
+    let metricField = 'score';
+    if (category === 'wpm') metricField = 'wpm';
+    if (category === 'level') metricField = 'levelReached';
+
+    const userBest = await GameSession.findOne({ user: userId })
+      .sort({ [metricField]: -1 })
+      .select(metricField);
+
+    const totalUsers = (await GameSession.distinct('user')).length;
+
+    if (!userBest) {
+      return res.json({
+        success: true,
+        rank: 'Unranked',
+        totalUsers,
+        category
+      });
     }
 
-    const rankings = await GameSession.aggregate([
-      {
-        $group: {
-          _id: '$user',
-          ...groupField
-        }
-      },
-      { $sort: sortField }
-    ]);
-
-    const userRank = rankings.findIndex(entry => entry._id.toString() === userId) + 1;
+    const metricValue = userBest[metricField];
+    const higherUsers = await GameSession.distinct('user', {
+      [metricField]: { $gt: metricValue }
+    });
 
     res.json({
       success: true,
-      rank: userRank || 'Unranked',
-      totalUsers: rankings.length,
+      rank: higherUsers.length + 1,
+      totalUsers,
       category
     });
   } catch (error) {
