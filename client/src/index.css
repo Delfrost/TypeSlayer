@@ -620,3 +620,391 @@ input:focus {
         font-size: 0.8rem;
     }
 }
+
+/* ========================================================
+   Side-by-Side Split Screen Layout
+   ======================================================== */
+.game-split-layout {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 1220px;
+    height: 600px;
+    margin: 0 auto;
+}
+
+/* User Toggle: Left vs Right ordering */
+.game-split-layout.layout-left .game-canvas-panel {
+    order: 1;
+}
+.game-split-layout.layout-left .typing-console-panel {
+    order: 2;
+}
+
+.game-split-layout.layout-right .game-canvas-panel {
+    order: 2;
+}
+.game-split-layout.layout-right .typing-console-panel {
+    order: 1;
+}
+
+.game-canvas-panel {
+    width: 800px;
+    height: 600px;
+    flex-shrink: 0;
+}
+
+.typing-console-panel {
+    width: 380px;
+    height: 600px;
+    flex-shrink: 0;
+    background: #14151e;
+    border: 2px solid #36394c;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 255, 136, 0.12);
+    box-sizing: border-box;
+}
+
+/* Console Header */
+.console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.console-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #00ff88;
+    font-family: 'MedievalSharp', cursive, 'Courier New', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.layout-swap-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #4a4e68;
+    color: #b0b5cc;
+    font-size: 0.8rem;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.layout-swap-btn:hover {
+    background: rgba(0, 255, 136, 0.15);
+    border-color: #00ff88;
+    color: #00ff88;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+/* Minions Card */
+.console-minions-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    padding-top: 10px;
+}
+
+.minions-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+}
+
+.minions-count-label {
+    color: #00ff88;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+}
+
+.minions-closest-hint {
+    color: #8b90a6;
+    font-style: italic;
+    font-size: 0.75rem;
+}
+
+.minions-scroll-rack {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 4px;
+    margin-bottom: 12px;
+}
+
+/* Custom scrollbar for minions rack */
+.minions-scroll-rack::-webkit-scrollbar {
+    width: 5px;
+}
+.minions-scroll-rack::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+.minions-scroll-rack::-webkit-scrollbar-thumb {
+    background: #36394c;
+    border-radius: 4px;
+}
+
+.minions-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #6d7288;
+    gap: 6px;
+    font-style: italic;
+}
+
+.minion-word-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #2a2c3a;
+    border-left: 4px solid #4a4e68;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Courier New', monospace;
+    transition: all 0.15s ease;
+}
+
+.minion-word-row.row-closest {
+    background: rgba(255, 107, 157, 0.08);
+    border-color: rgba(255, 107, 157, 0.4);
+    box-shadow: 0 0 10px rgba(255, 107, 157, 0.15);
+}
+
+.minion-word-row.row-matched {
+    background: rgba(0, 255, 136, 0.15);
+    border-color: #00ff88;
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.4);
+    transform: translateX(3px);
+}
+
+.minion-word-row.row-ally {
+    border-left-color: #00ff88 !important;
+    background: rgba(0, 255, 136, 0.06);
+}
+
+.minion-row-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.minion-icon {
+    font-size: 1rem;
+}
+
+.minion-word-text {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.matched-chars {
+    color: #00ff88;
+    text-shadow: 0 0 6px rgba(0, 255, 136, 0.8);
+    text-decoration: underline;
+}
+
+.remaining-chars {
+    color: #f0f0f0;
+}
+
+.danger-tag {
+    background: #ff4444;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    animation: pulse 1.2s infinite;
+}
+
+.ally-tag {
+    background: #00ff88;
+    color: #0a0a0a;
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+/* Console Input Section */
+.console-input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 10px;
+}
+
+.console-typing-input {
+    width: 100%;
+    background: #0d0e14;
+    border: 1.5px solid #36394c;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    letter-spacing: 1px;
+    box-sizing: border-box;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.console-typing-input:focus {
+    border-color: #00ff88;
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.35);
+}
+
+.input-instant-hint {
+    color: #8b90a6;
+    font-size: 0.74rem;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+}
+
+/* Boss Card */
+.console-boss-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+}
+
+.boss-alert-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ff0088;
+    font-family: 'MedievalSharp', cursive, 'Courier New', monospace;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-shadow: 0 0 10px rgba(255, 0, 136, 0.5);
+}
+
+.boss-instruction {
+    color: #a0a5b8;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.boss-sentence-box {
+    background: #0b0c12;
+    border: 1.5px solid #ff0088;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 1.15rem;
+    font-weight: 700;
+    width: 100%;
+    box-shadow: 0 0 20px rgba(255, 0, 136, 0.25);
+    box-sizing: border-box;
+    letter-spacing: 1px;
+    line-height: 1.4;
+    word-break: break-word;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.boss-sentence-box.box-error {
+    border-color: #ff4444;
+    box-shadow: 0 0 25px rgba(255, 68, 68, 0.7);
+    animation: shake 0.2s ease-in-out;
+}
+
+.boss-sentence-box.box-retreating {
+    border-color: #00ff88;
+    color: #00ff88;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+    font-style: italic;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.boss-char-typed {
+    color: #00ff88;
+    text-shadow: 0 0 8px rgba(0, 255, 136, 0.8);
+}
+
+.boss-char-cursor {
+    color: #ff0088;
+    animation: blink 0.8s infinite;
+    font-weight: 900;
+}
+
+.boss-char-remaining {
+    color: #6d7285;
+}
+
+.boss-progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background: #202230;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.boss-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff0088, #00ff88);
+    transition: width 0.15s ease;
+}
+
+.boss-counter-row {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 0.78rem;
+    color: #a0a5b8;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.game-typing-input-hidden {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}

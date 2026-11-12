@@ -33,15 +33,9 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Disable body scroll when game is active
+  // Allow natural body scroll so full game layout is accessible on all screen heights
   useEffect(() => {
-    if (showGame) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    
-    // Cleanup on unmount
+    document.body.style.overflow = 'auto';
     return () => {
       document.body.style.overflow = 'auto';
     };
@@ -401,11 +395,12 @@ function App() {
       {/* Main Content - Show Game or Welcome Screen */}
       {showGame ? (
         <div style={{ 
-          height: 'calc(100vh - 80px)', 
-          overflow: 'hidden',
+          minHeight: 'calc(100vh - 80px)', 
+          overflowY: 'auto',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          padding: '1rem 0'
         }}>
           <Game onRestart={() => {
             setShowGame(false);

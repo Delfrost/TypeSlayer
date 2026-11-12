@@ -17,42 +17,47 @@ const allyWords = {
 // Enemy types and their properties (slowed down speeds)
 const enemyTypes = {
   minion: {
+    key: "minion",
     name: "Shadow Minion",
     hp: 1,
-    speed: 4000, // Increased from 3000
+    speed: 4000,
     color: "#666666",
     points: 10,
     sprite: "👻",
     scale: 0.8
   },
   warrior: {
+    key: "warrior",
     name: "Dark Warrior",
     hp: 2,
-    speed: 4500, // Increased from 3500
+    speed: 4500,
     color: "#aa4444",
     points: 25,
     sprite: "⚔️",
     scale: 0.9
   },
   mage: {
+    key: "mage",
     name: "Evil Mage",
     hp: 2,
-    speed: 5000, // Increased from 4000
+    speed: 5000,
     color: "#4444aa",
     points: 30,
     sprite: "🔮",
     scale: 0.9
   },
   demon: {
+    key: "demon",
     name: "Demon",
     hp: 3,
-    speed: 5500, // Increased from 4500
+    speed: 5500,
     color: "#aa44aa",
     points: 40,
     sprite: "👹",
     scale: 1.0
   },
   boss: {
+    key: "boss",
     name: "Dark Lord",
     hp: 2, // Base HP — overridden per level in spawnBoss()
     speed: 14000, // Base speed — overridden per level in spawnBoss()
@@ -469,15 +474,6 @@ class PlayScene extends Phaser.Scene {
     this.statusText = this.add.text(400, 50, '', { fontSize: '18px', fontFamily: 'Arial', fill: '#00ff88', stroke: '#000033', strokeThickness: 1 }).setOrigin(0.5);
     this.bossProgressText = this.add.text(400, 20, '', { fontSize: '18px', fontFamily: 'Arial', fill: '#fd79a8', stroke: '#000033', strokeThickness: 1 }).setOrigin(0.5);
 
-    this.inputDisplay = this.add.text(400, 450, "", {
-      fontSize: "26px", fontFamily: "Courier New, monospace", fill: "#ffffff", backgroundColor: "#2d3436",
-      padding: { x: 20, y: 10 }, stroke: "#6c5ce7", strokeThickness: 2
-    }).setOrigin(0.5).setDepth(20);
-
-    this.inputHint = this.add.text(400, 485, "Channel your magic through typing...", {
-      fontSize: "16px", fontFamily: "Arial", fill: "#b2bec3", fontStyle: "italic"
-    }).setOrigin(0.5).setDepth(20);
-
     // --- PLAYER & GAME START ---
     const slashRadius = 250; 
     this.rangeCircle = this.add.graphics();
@@ -504,7 +500,12 @@ class PlayScene extends Phaser.Scene {
       this.showNotification("TYPE TO SURVIVE!", '#ff0000', 2000);
     });
 
-    this.input.keyboard.on("keydown", this.handleKeyInput, this);
+    // Keyboard restart listener for GameOver screen
+    this.input.keyboard.on("keydown", (event) => {
+      if (this.gameState.gameOver && (event.key === ' ' || event.key === 'Enter')) {
+        this.scene.start("MenuScene");
+      }
+    });
   }
 
   getWordsForLevel(level) {
@@ -551,6 +552,7 @@ class PlayScene extends Phaser.Scene {
     
 
   startGame() {
+    this.bossSpawnPending = false;
     // Start enemy spawning with magical timing
     this.enemyTimer = this.time.addEvent({
       delay: this.gameState.spawnRate,
@@ -571,14 +573,36 @@ class PlayScene extends Phaser.Scene {
   spawnEnemy() {
     if (this.gameState.gameOver || this.gameState.bossActive) return;
 
-    // Check if it's time for a boss
-    if (this.gameState.enemiesKilled >= this.gameState.enemiesPerBoss && !this.gameState.bossActive) {
-      this.spawnBoss();
+    // Check if it's time for a boss: wait until all active minions are dead before spawning boss
+    if (this.gameState.enemiesKilled >= this.gameState.enemiesPerBoss) {
+      if (this.enemyTimer) this.enemyTimer.paused = true;
+      this.checkAndSpawnBoss();
       return;
     }
 
     // Spawn regular enemy with word
     this.spawnRegularEnemy();
+  }
+
+  checkAndSpawnBoss() {
+    if (this.gameState.bossActive || this.gameState.gameOver || this.bossSpawnPending) return;
+    if (this.gameState.enemiesKilled < this.gameState.enemiesPerBoss) return;
+
+    const remainingMinions = this.enemyGroup.getChildren().filter(
+      e => e.active && !e.getData('matched') && !e.getData('isBoss')
+    );
+
+    if (remainingMinions.length === 0) {
+      this.bossSpawnPending = true;
+      this.time.delayedCall(600, () => {
+        this.bossSpawnPending = false;
+        if (!this.gameState.bossActive && !this.gameState.gameOver) {
+          this.spawnBoss();
+        }
+      });
+    } else {
+      this.updateBossProgress();
+    }
   }
 
   trySpawnAlly() {
@@ -648,6 +672,7 @@ class PlayScene extends Phaser.Scene {
       onComplete: () => {
         ally.destroy();
         allyWordText.destroy();
+        this.syncWordsToBridge();
       }
     });
 
@@ -656,6 +681,7 @@ class PlayScene extends Phaser.Scene {
 
     // Show ally notification
     this.showNotification("🧙‍♀️ Friendly ally appeared! 🧙‍♀️", allyType.color, 2000);
+    this.syncWordsToBridge();
   }
 
 spawnHealerAlly() {
@@ -697,11 +723,13 @@ spawnHealerAlly() {
     onComplete: () => {
       ally.destroy();
       allyWordText.destroy();
+      this.syncWordsToBridge();
     }
   });
 
   ally.setData('tween', tween);
   this.showNotification("A healer comes to your aid!", allyType.color, 2000);
+  this.syncWordsToBridge();
 }
 
 // client/src/game/main.js -> in PlayScene
@@ -729,6 +757,7 @@ spawnRegularEnemy() {
   enemy.startFollow((finishedEnemy) => {
     // This code runs when the enemy reaches the end of its path
     if (!finishedEnemy.getData('matched') && !this.gameState.gameOver) {
+      finishedEnemy.setData('matched', true);
       if (!this.gameState.shield) {
         this.loseLife();
         this.createMagicalExplosion(finishedEnemy.x, finishedEnemy.y, '#ff4444', 'miss');
@@ -738,7 +767,14 @@ spawnRegularEnemy() {
         this.showNotification("🛡️ Shield absorbed damage!", '#ffaa00', 1500);
       }
     }
+    if (finishedEnemy.active) {
+      finishedEnemy.destroy();
+    }
+    this.syncWordsToBridge();
+    this.checkAndSpawnBoss();
   });
+
+  this.syncWordsToBridge();
 }
 
   // Boss HP and speed scale with level
@@ -785,13 +821,6 @@ spawnRegularEnemy() {
     boss.setScale(2.5); // Boss is bigger than regular enemies
     boss.play('villain-walk-down');
 
-    // Hide boss initially, show after 2 seconds
-    boss.setAlpha(0);
-    this.time.delayedCall(2000, () => {
-      boss.setAlpha(1);
-    });
-
-    
     // Store boss data — use level-scaled HP
     boss.setData('word', line);
     boss.setData('wordText', bossLineText);
@@ -802,27 +831,31 @@ spawnRegularEnemy() {
     boss.setData('matched', false);
     boss.setData('isBoss', true);
     boss.setData('isAlly', false);
-    
+
+    this.bossTypedCount = 0;
+    this.bridge?.onBossUpdate?.({
+      active: true,
+      sentence: line,
+      typedCount: 0
+    });
+    this.syncWordsToBridge();
 
     this.enemyGroup.add(boss);
 
     // Dramatic boss entrance
     this.showNotification("🔥 BOSS APPROACHES! 🔥", '#ff0088', 2000);
 
-    // Apply time slow effect if active — use level-scaled speed
-    const currentSpeed = this.gameState.timeSlowActive ?
-      bossSpeed * 1.8 : bossSpeed;
-
     // Animate boss descent
     const tween = this.tweens.add({
       targets: [boss, bossLineText],
       y: 450, // Move towards player but stop in front of them
-      duration: currentSpeed,
+      duration: bossSpeed,
       ease: 'Linear',
       onComplete: () => {
         if (!boss.getData('matched') && !this.gameState.gameOver) {
           boss.play('villain-slash-down');
           boss.once('animationcomplete', () => {
+            if (this.gameState.gameOver || !boss.active) return;
             if (!this.gameState.shield) {
               this.loseLife();
               this.createMagicalExplosion(boss.x, boss.y + 50, '#ff0088', 'boss_miss');
@@ -831,7 +864,9 @@ spawnRegularEnemy() {
               this.updateStatusDisplay();
               this.showNotification("🛡️ Shield absorbed boss damage!", '#ffaa00', 1500);
             }
-            this.retreatBoss(boss, bossLineText, false);
+            if (!this.gameState.gameOver && boss.active) {
+              this.retreatBoss(boss, bossLineText, false);
+            }
           });
         } else {
           this.gameState.bossActive = false;
@@ -840,6 +875,11 @@ spawnRegularEnemy() {
         }
       }
     });
+
+    if (this.gameState.timeSlowActive) {
+      tween.setTimeScale(0.5);
+      boss.anims.setTimeScale(0.5);
+    }
 
     boss.setData('tween', tween);
   }
@@ -858,6 +898,12 @@ spawnRegularEnemy() {
             boss.setData('word', newLine);
             wordText.setText(newLine);
         }
+        this.bossTypedCount = 0;
+        this.bridge?.onBossUpdate?.({
+          active: true,
+          sentence: boss.getData('word') || '',
+          typedCount: 0
+        });
         wordText.setAlpha(1);
         boss.setData('matched', false);
         boss.play('villain-walk-down'); 
@@ -871,6 +917,7 @@ spawnRegularEnemy() {
              if (!boss.getData('matched') && !this.gameState.gameOver) {
                boss.play('villain-slash-down');
                boss.once('animationcomplete', () => {
+                 if (this.gameState.gameOver || !boss.active) return;
                  if (!this.gameState.shield) {
                    this.loseLife();
                    this.createMagicalExplosion(boss.x, boss.y + 50, '#ff0088', 'boss_miss');
@@ -879,7 +926,9 @@ spawnRegularEnemy() {
                    this.updateStatusDisplay();
                    this.showNotification("🛡️ Shield absorbed boss damage!", '#ffaa00', 1500);
                  }
-                 this.retreatBoss(boss, wordText, false);
+                 if (!this.gameState.gameOver && boss.active) {
+                   this.retreatBoss(boss, wordText, false);
+                 }
                });
              } else {
                  this.gameState.bossActive = false;
@@ -888,47 +937,25 @@ spawnRegularEnemy() {
              }
           }
         });
+        if (this.gameState.timeSlowActive) {
+          newTween.setTimeScale(0.5);
+          boss.anims.setTimeScale(0.5);
+        }
         boss.setData('tween', newTween);
       }
     });
   }
 
-  handleKeyInput(event) {
-    // Prevent default browser behavior for space and other keys
-    if (event.key === ' ' || event.key === 'Enter' || event.key === 'Backspace') {
-      event.preventDefault();
-    }
-    if (this.gameState.gameOver) {
-      if (event.key === ' ' || event.key === 'Enter') {
-        this.scene.start("MenuScene");
-      }
-      return;
-    }
-
-    if (event.key === "Enter") {
-      this.castSpell();
-      this.gameState.currentInput = "";
-      this.inputDisplay.setText("");
-    } else if (event.key === "Backspace") {
-      this.gameState.currentInput = this.gameState.currentInput.slice(0, -1);
-      this.inputDisplay.setText(this.gameState.currentInput);
-    } else if (event.key.length === 1) {
-      this.gameState.currentInput += event.key;
-      this.inputDisplay.setText(this.gameState.currentInput);
-    }
-  }
-
-  castSpell() {
-    const spellText = this.gameState.currentInput.trim().toLowerCase();
-    if (!spellText) return;
+  typeWord(spellText) {
+    if (!spellText || this.gameState.gameOver) return false;
+    spellText = spellText.trim().toLowerCase();
 
     let spellCast = false;
     let allyHelped = false;
 
-    // Check allies first for bonuses
+    // Check allies first
     this.allyGroup.getChildren().forEach((ally) => {
-      const allyWord = ally.getData('word').toLowerCase();
-
+      const allyWord = (ally.getData('word') || '').toLowerCase();
       if (allyWord === spellText && !ally.getData('matched')) {
         allyHelped = true;
         spellCast = true;
@@ -936,32 +963,38 @@ spawnRegularEnemy() {
       }
     });
 
-    // Then check enemies
+    // Check enemies: target closest enemy with this word
     if (!allyHelped) {
+      let targetEnemy = null;
+      let maxProgress = -1;
       this.enemyGroup.getChildren().forEach((enemy) => {
-        const enemyWord = enemy.getData('word').toLowerCase();
-        const isBoss = enemy.getData('isBoss');
-
-        if (enemyWord === spellText && !enemy.getData('matched')) {
-          spellCast = true;
-          const attackType = this.player.attack(enemy.x, enemy.y);
-          const damage = isBoss ? 1 : enemy.getData('hp'); // Bosses take 1 damage per correct spell
-
-          this.damageEnemy(enemy, damage, attackType);
+        if (!enemy.getData('matched') && !enemy.getData('isBoss')) {
+          const enemyWord = (enemy.getData('word') || '').toLowerCase();
+          if (enemyWord === spellText) {
+            const prog = enemy.getData('pathProgress') || 0;
+            if (prog > maxProgress) {
+              maxProgress = prog;
+              targetEnemy = enemy;
+            }
+          }
         }
       });
+
+      if (targetEnemy) {
+        spellCast = true;
+        const attackType = this.player.attack(targetEnemy.x, targetEnemy.y);
+        const damage = targetEnemy.getData('hp');
+        this.damageEnemy(targetEnemy, damage, attackType);
+      }
     }
 
     if (spellCast) {
       this.gameState.wordsTyped++;
       this.gameState.correctWords++;
-      
-      // Track character accuracy - add the length of correctly typed word
       this.gameState.totalCharactersTyped += spellText.length;
       this.gameState.correctCharacters += spellText.length;
 
       if (!allyHelped) {
-        // Increase combo for enemy defeats
         const prevMultiplier = this.gameState.comboMultiplier;
         this.gameState.comboCount++;
         this.gameState.comboMultiplier = Math.min(5, Math.floor(this.gameState.comboCount / 3) + 1);
@@ -973,32 +1006,112 @@ spawnRegularEnemy() {
       }
 
       this.updateWPM();
+      this.fxManager.playCollectBurst(this.player.x, this.player.y - 40);
+      this.syncWordsToBridge();
+      return true;
+    }
+    return false;
+  }
 
-      // Successful typing effect: magical sparkle burst near input display
-      this.fxManager.playCollectBurst(this.inputDisplay.x, this.inputDisplay.y - 25);
+  typeBossChar(char) {
+    if (!this.gameState.bossActive || this.gameState.gameOver) return false;
+    const boss = this.enemyGroup.getChildren().find(e => e.active && e.getData('isBoss'));
+    if (!boss || boss.getData('matched')) return false;
 
-      // Flash input with success color
-      this.inputDisplay.setStyle({ backgroundColor: '#00aa44' });
-      this.time.delayedCall(200, () => {
-        this.inputDisplay.setStyle({ backgroundColor: '#2d3436' });
+    const sentence = boss.getData('word') || '';
+    if (this.bossTypedCount === undefined) this.bossTypedCount = 0;
+    const expectedChar = sentence[this.bossTypedCount];
+
+    // Case-insensitive character match so player doesn't fail on capital letters
+    if (char.toLowerCase() === (expectedChar || '').toLowerCase()) {
+      this.bossTypedCount++;
+      this.gameState.totalCharactersTyped++;
+      this.gameState.correctCharacters++;
+      this.updateWPM();
+
+      this.updateBossWordDisplay(boss, this.bossTypedCount);
+
+      this.bridge?.onBossUpdate?.({
+        active: true,
+        sentence,
+        typedCount: this.bossTypedCount
       });
+
+      // Whole sentence typed!
+      if (this.bossTypedCount >= sentence.length) {
+        this.bossTypedCount = 0;
+        const attackType = this.player.attack(boss.x, boss.y);
+        this.damageEnemy(boss, 1, attackType);
+      }
+      return true;
     } else {
-      // Track failed word attempt
-      this.gameState.wordsTyped++;
-      this.gameState.totalCharactersTyped += spellText.length;
-      this.gameState.errorCharacters += spellText.length;
-      
-      // Reset combo on miss
+      this.gameState.totalCharactersTyped++;
+      this.gameState.errorCharacters++;
       this.gameState.comboCount = 0;
       this.gameState.comboMultiplier = 1;
       this.updateComboDisplay();
+      return false;
+    }
+  }
 
-      // Flash input with failure color
-      this.inputDisplay.setStyle({ backgroundColor: '#aa0044' });
-      this.time.delayedCall(200, () => {
-        this.inputDisplay.setStyle({ backgroundColor: '#2d3436' });
+  backspaceBossChar() {
+    if (!this.gameState.bossActive || this.bossTypedCount <= 0) return;
+    this.bossTypedCount--;
+    const boss = this.enemyGroup.getChildren().find(e => e.active && e.getData('isBoss'));
+    if (boss) {
+      this.updateBossWordDisplay(boss, this.bossTypedCount);
+      this.bridge?.onBossUpdate?.({
+        active: true,
+        sentence: boss.getData('word') || '',
+        typedCount: this.bossTypedCount
       });
     }
+  }
+
+  updateBossWordDisplay(boss, typedCount) {
+    const wordText = boss.getData('wordText');
+    if (!wordText || !wordText.active) return;
+    const sentence = boss.getData('word') || '';
+    const typed = sentence.slice(0, typedCount);
+    const remaining = sentence.slice(typedCount);
+    wordText.setText(`[${typed}] ${remaining}`);
+  }
+
+  syncWordsToBridge() {
+    if (!this.bridge || !this.bridge.onWordsUpdate) return;
+    if (this.gameState.gameOver) {
+      this.bridge.onWordsUpdate([]);
+      return;
+    }
+
+    const words = [];
+    this.enemyGroup.getChildren().forEach((enemy) => {
+      if (enemy.active && !enemy.getData('matched') && !enemy.getData('isBoss')) {
+        words.push({
+          id: enemy.getData('id') || enemy.getData('word'),
+          word: enemy.getData('word'),
+          type: enemy.getData('type'),
+          color: enemy.getData('color') || '#ffaa44',
+          progress: enemy.getData('pathProgress') || 0
+        });
+      }
+    });
+
+    this.allyGroup.getChildren().forEach((ally) => {
+      if (ally.active && !ally.getData('matched')) {
+        words.push({
+          id: 'ally_' + ally.getData('word'),
+          word: ally.getData('word'),
+          type: ally.getData('type'),
+          color: '#00ff88',
+          progress: 0.5,
+          isAlly: true
+        });
+      }
+    });
+
+    words.sort((a, b) => b.progress - a.progress);
+    this.bridge.onWordsUpdate(words);
   }
 
   helpAlly(ally) {
@@ -1066,30 +1179,29 @@ spawnRegularEnemy() {
 
     this.gameState.timeSlowActive = true;
 
-    // Slow down all existing enemies
+    // Native Phaser timeScale: scales path tween & footfall animation without breaking callbacks
     this.enemyGroup.getChildren().forEach((enemy) => {
       const tween = enemy.getData('tween');
       if (tween && tween.isPlaying()) {
-        const progress = tween.progress;
-        tween.stop();
-
-        // Create new slower tween
-        const wordText = enemy.getData('wordText');
-        const remainingDistance = (1 - progress) * 650;
-        const newTween = this.tweens.add({
-          targets: [enemy, wordText],
-          y: `+=${remainingDistance}`,
-          duration: (1 - progress) * this.gameState.enemySpeed * 1.8,
-          ease: 'Linear',
-          onComplete: tween.onComplete
-        });
-        enemy.setData('tween', newTween);
+        tween.setTimeScale(0.5);
+      }
+      if (enemy.anims) {
+        enemy.anims.setTimeScale(0.5);
       }
     });
 
-    // Auto-disable after 8 seconds
+    // Auto-disable after 8 seconds and restore normal speed
     this.time.delayedCall(8000, () => {
       this.gameState.timeSlowActive = false;
+      this.enemyGroup.getChildren().forEach((enemy) => {
+        const tween = enemy.getData('tween');
+        if (tween && tween.isPlaying()) {
+          tween.setTimeScale(1.0);
+        }
+        if (enemy.anims) {
+          enemy.anims.setTimeScale(1.0);
+        }
+      });
       this.updateStatusDisplay();
     });
   }
@@ -1125,6 +1237,7 @@ spawnRegularEnemy() {
   }
 
   handleEnemyDefeat(enemy) {
+    if (!enemy || !enemy.active) return;
     const isBoss = enemy.getData('isBoss');
     const wordText = enemy.getData('wordText');
     
@@ -1133,6 +1246,9 @@ spawnRegularEnemy() {
 
     if (isBoss) {
       this.gameState.bossActive = false;
+      this.bossTypedCount = 0;
+      this.bossSpawnPending = false;
+      this.bridge?.onBossUpdate?.({ active: false, sentence: '', typedCount: 0 });
       this.gameState.enemiesKilled = 0;
       this.fxManager.playBossDeath(enemy.x, enemy.y);
       this.createMagicalExplosion(enemy.x, enemy.y, '#ffaa00', 'boss_death');
@@ -1166,6 +1282,8 @@ spawnRegularEnemy() {
     enemy.destroy();
     if (wordText) wordText.destroy();
     this.updateBossProgress();
+    this.syncWordsToBridge();
+    this.checkAndSpawnBoss();
   }
 
   damageEnemy(enemy, damage, attackType) {
@@ -1211,6 +1329,13 @@ spawnRegularEnemy() {
         if (tween) tween.stop();
         const wordText = enemy.getData('wordText');
         wordText.setAlpha(0);
+
+        this.bridge?.onBossUpdate?.({
+          active: true,
+          sentence: '⚡ CRITICAL HIT! BOSS RETREATING...',
+          typedCount: 0,
+          retreating: true
+        });
 
         this.retreatBoss(enemy, wordText, true);
     } else if (!isBoss) {
@@ -1327,12 +1452,19 @@ spawnRegularEnemy() {
 
   updateBossProgress() {
     const remaining = this.gameState.enemiesPerBoss - this.gameState.enemiesKilled;
-    if (remaining > 0 && !this.gameState.bossActive) {
-      this.bossProgressText.setText(`⚔️ ${remaining} enemies until boss appears`);
-    } else if (this.gameState.bossActive) {
+    if (this.gameState.bossActive) {
       this.bossProgressText.setText("🔥 BOSS BATTLE 🔥");
+    } else if (remaining > 0) {
+      this.bossProgressText.setText(`⚔️ ${remaining} enemies until boss appears`);
     } else {
-      this.bossProgressText.setText("");
+      const activeMinions = this.enemyGroup.getChildren().filter(
+        e => e.active && !e.getData('matched') && !e.getData('isBoss')
+      ).length;
+      if (activeMinions > 0) {
+        this.bossProgressText.setText(`⚔️ Clear ${activeMinions} remaining minion${activeMinions > 1 ? 's' : ''} for Boss!`);
+      } else {
+        this.bossProgressText.setText("🔥 BOSS APPROACHING... 🔥");
+      }
     }
   }
 
@@ -1361,6 +1493,8 @@ spawnRegularEnemy() {
     // Clear remaining enemies on screen
     this.enemyGroup.clear(true, true);
     this.allyGroup.clear(true, true);
+    this.bridge?.onWordsUpdate?.([]);
+    this.bridge?.onBossUpdate?.({ active: false, sentence: '', typedCount: 0 });
 
     // Hide range circle during transition
     if (this.rangeCircle) this.rangeCircle.setVisible(false);
@@ -1433,12 +1567,12 @@ spawnRegularEnemy() {
     // Clear remaining enemies and allies
     this.enemyGroup.clear(true, true);
     this.allyGroup.clear(true, true);
+    this.bridge?.onWordsUpdate?.([]);
+    this.bridge?.onBossUpdate?.({ active: false, sentence: '', typedCount: 0 });
 
-    // Hide player, range circle, and input UI so they don't show through the overlay
+    // Hide player, range circle UI so they don't show through the overlay
     if (this.player) this.player.setVisible(false);
     if (this.rangeCircle) this.rangeCircle.setVisible(false);
-    if (this.inputDisplay) this.inputDisplay.setVisible(false);
-    if (this.inputHint) this.inputHint.setVisible(false);
 
     // Trigger game session save if callback exists
     if (this.onGameComplete) {
@@ -1547,11 +1681,17 @@ spawnRegularEnemy() {
     });
   }
 
-  update() {
+  update(time, delta) {
     // Update WPM and status displays periodically
     if (!this.gameState.gameOver) {
       this.updateWPM();
       this.updateStatusDisplay();
+
+      this.bridgeSyncTimer = (this.bridgeSyncTimer || 0) + (delta || 16);
+      if (this.bridgeSyncTimer > 250) {
+        this.bridgeSyncTimer = 0;
+        this.syncWordsToBridge();
+      }
     }
   }
 }
@@ -1577,7 +1717,7 @@ const config = {
 // Initialize game when DOM is ready
 let game = null;
 
-export function initializeGame(parentElement, onGameComplete) {
+export function initializeGame(parentElement, onGameComplete, bridge) {
   if (game) {
     game.destroy(true);
   }
@@ -1589,15 +1729,21 @@ export function initializeGame(parentElement, onGameComplete) {
 
   game = new Phaser.Game(gameConfig);
   
-  // Set the game complete callback on the PlayScene
-  if (onGameComplete) {
-    game.events.on('ready', () => {
-      const playScene = game.scene.getScene('PlayScene');
-      if (playScene) {
+  // Set the game complete callback on the PlayScene and attach bridge
+  game.events.on('ready', () => {
+    const playScene = game.scene.getScene('PlayScene');
+    if (playScene) {
+      if (onGameComplete) {
         playScene.onGameComplete = onGameComplete;
       }
-    });
-  }
+      if (bridge) {
+        playScene.bridge = bridge;
+        bridge.typeWord = (word) => playScene.typeWord(word);
+        bridge.typeBossChar = (char) => playScene.typeBossChar(char);
+        bridge.backspaceBossChar = () => playScene.backspaceBossChar();
+      }
+    }
+  });
   
   return game;
 }
